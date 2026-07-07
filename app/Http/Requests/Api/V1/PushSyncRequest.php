@@ -32,6 +32,7 @@ class PushSyncRequest extends FormRequest
             'data.outlets.*.location.longitude' => 'required|numeric',
             'data.outlets.*.version' => 'required|integer',
             'data.outlets.*.last_updated_at' => 'required|date',
+            'data.outlets.*.deleted_at' => 'nullable|date',
             'data.tracking_logs' => 'nullable|array',
             'data.tracking_logs.*.id' => 'required',
             'data.tracking_logs.*.user_id' => 'required|integer',
@@ -42,6 +43,7 @@ class PushSyncRequest extends FormRequest
             'data.tracking_logs.*.recorded_at_mobile' => 'required|date',
             'data.tracking_logs.*.version' => 'required|integer',
             'data.tracking_logs.*.last_updated_at' => 'required|date',
+            'data.tracking_logs.*.deleted_at' => 'nullable|date',
         ];
     }
 }
