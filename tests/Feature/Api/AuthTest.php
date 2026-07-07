@@ -51,7 +51,7 @@ class AuthTest extends TestCase
     /**
      * Test user login fails with invalid credentials.
      */
-    public function test_it_returns_401_on_invalid_credentials(): void
+    public function test_it_rejects_invalid_login_credentials(): void
     {
         User::create([
             'name' => 'Test Mobile User',
@@ -68,6 +68,18 @@ class AuthTest extends TestCase
             ->assertJson([
                 'message' => 'Invalid credentials.',
             ]);
+    }
+
+    /**
+     * Test sync routes block unauthenticated access.
+     */
+    public function test_it_blocks_unauthenticated_access_to_sync_routes(): void
+    {
+        $response = $this->postJson('http://test.localhost/api/v1/sync/pull', [
+            'collections' => ['outlets'],
+        ]);
+
+        $response->assertStatus(401);
     }
 
     /**
