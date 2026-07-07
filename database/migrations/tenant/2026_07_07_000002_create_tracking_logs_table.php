@@ -22,6 +22,11 @@ return new class extends Migration
             $table->timestamp('last_updated_at');
             $table->softDeletes();
             $table->timestamps();
+
+            // Indexes
+            $table->spatialIndex('location');
+            $table->index('last_updated_at');
+            $table->index('user_id');
         });
     }
 
