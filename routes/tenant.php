@@ -33,6 +33,11 @@ Route::middleware([
     InitializeTenancyByDomain::class,
     PreventAccessFromCentralDomains::class,
 ])->prefix('api/v1')->group(function () {
-    Route::post('/sync/pull', [App\Http\Controllers\Api\V1\SyncController::class, 'pull']);
-    Route::post('/sync/push', [App\Http\Controllers\Api\V1\SyncController::class, 'push']);
+    Route::post('/login', [App\Http\Controllers\Api\V1\AuthController::class, 'login']);
+    
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/logout', [App\Http\Controllers\Api\V1\AuthController::class, 'logout']);
+        Route::post('/sync/pull', [App\Http\Controllers\Api\V1\SyncController::class, 'pull']);
+        Route::post('/sync/push', [App\Http\Controllers\Api\V1\SyncController::class, 'push']);
+    });
 });

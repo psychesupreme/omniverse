@@ -4,11 +4,20 @@ namespace Tests\Feature\Api;
 
 use App\Models\Outlet;
 use App\Models\TrackingLog;
+use App\Models\User;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class PullSyncTest extends TestCase
 {
+    /**
+     * The Sanctum authentication token.
+     */
+    protected string $token;
+
+    /**
+     * Setup the test environment.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -16,6 +25,15 @@ class PullSyncTest extends TestCase
         // Clean up tables to ensure a fresh state for each test
         Outlet::withTrashed()->forceDelete();
         TrackingLog::withTrashed()->forceDelete();
+        User::query()->delete();
+
+        // Create a test user and generate a token
+        $user = User::create([
+            'name' => 'Sync Test User',
+            'email' => 'syncuser@example.com',
+            'password' => bcrypt('password'),
+        ]);
+        $this->token = $user->createToken('test-token')->plainTextToken;
     }
 
     /**
@@ -60,7 +78,9 @@ class PullSyncTest extends TestCase
         ]);
 
         // Send pull request
-        $response = $this->postJson('http://test.localhost/api/v1/sync/pull', [
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+        ])->postJson('http://test.localhost/api/v1/sync/pull', [
             'collections' => ['outlets', 'tracking_logs'],
         ]);
 
@@ -104,7 +124,9 @@ class PullSyncTest extends TestCase
         $lastSyncTimestamp = now()->subHours(12)->toDateTimeString();
 
         // Send pull request
-        $response = $this->postJson('http://test.localhost/api/v1/sync/pull', [
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+        ])->postJson('http://test.localhost/api/v1/sync/pull', [
             'last_sync_timestamp' => $lastSyncTimestamp,
             'collections' => ['outlets'],
         ]);

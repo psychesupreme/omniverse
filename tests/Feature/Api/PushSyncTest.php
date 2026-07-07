@@ -4,11 +4,17 @@ namespace Tests\Feature\Api;
 
 use App\Models\Outlet;
 use App\Models\TrackingLog;
+use App\Models\User;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class PushSyncTest extends TestCase
 {
+    /**
+     * The Sanctum authentication token.
+     */
+    protected string $token;
+
     /**
      * Setup the test environment.
      */
@@ -19,6 +25,15 @@ class PushSyncTest extends TestCase
         // Clean up tables to ensure a fresh state for each test
         Outlet::withTrashed()->forceDelete();
         TrackingLog::withTrashed()->forceDelete();
+        User::query()->delete();
+
+        // Create a test user and generate a token
+        $user = User::create([
+            'name' => 'Sync Test User',
+            'email' => 'syncuser@example.com',
+            'password' => bcrypt('password'),
+        ]);
+        $this->token = $user->createToken('test-token')->plainTextToken;
     }
 
     /**
@@ -29,7 +44,9 @@ class PushSyncTest extends TestCase
         $outletId = 123;
         $trackingLogId = 456;
 
-        $response = $this->postJson('http://test.localhost/api/v1/sync/push', [
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+        ])->postJson('http://test.localhost/api/v1/sync/push', [
             'client_timestamp' => now()->toDateTimeString(),
             'data' => [
                 'outlets' => [
@@ -90,7 +107,9 @@ class PushSyncTest extends TestCase
         ]);
 
         // Push new name set to today (newer)
-        $response = $this->postJson('http://test.localhost/api/v1/sync/push', [
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+        ])->postJson('http://test.localhost/api/v1/sync/push', [
             'client_timestamp' => now()->toDateTimeString(),
             'data' => [
                 'outlets' => [
@@ -132,7 +151,9 @@ class PushSyncTest extends TestCase
         ]);
 
         // Push update set to yesterday (older)
-        $response = $this->postJson('http://test.localhost/api/v1/sync/push', [
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+        ])->postJson('http://test.localhost/api/v1/sync/push', [
             'client_timestamp' => now()->toDateTimeString(),
             'data' => [
                 'outlets' => [
@@ -174,7 +195,9 @@ class PushSyncTest extends TestCase
         $this->assertNull($outlet->deleted_at);
 
         // Send push payload with deleted_at populated and newer last_updated_at
-        $response = $this->postJson('http://test.localhost/api/v1/sync/push', [
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+        ])->postJson('http://test.localhost/api/v1/sync/push', [
             'client_timestamp' => now()->toDateTimeString(),
             'data' => [
                 'outlets' => [
