@@ -49,6 +49,16 @@ class SyncService
                 }
             }
         });
+
+        if (!empty($records)) {
+            \App\Events\SyncProcessed::dispatch(
+                tenant('id'),
+                [
+                    'model' => class_basename($modelClass),
+                    'count' => count($records),
+                ]
+            );
+        }
     }
 
     /**
