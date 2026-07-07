@@ -27,6 +27,10 @@ class SyncService
                     if (isset($record['deleted_at']) && !is_null($record['deleted_at'])) {
                         $newRecord->delete();
                     }
+
+                    if ($modelClass === \App\Models\TrackingLog::class) {
+                        \App\Jobs\AnalyzeTrackingLogGeofences::dispatch(tenant('id'), $newRecord);
+                    }
                 } else {
                     // Compare timestamps using LWW
                     $incomingTime = Carbon::parse($record['last_updated_at']);
@@ -44,6 +48,10 @@ class SyncService
                         // If incoming payload has deleted_at, soft delete it
                         if (isset($record['deleted_at']) && !is_null($record['deleted_at'])) {
                             $existingRecord->delete();
+                        }
+
+                        if ($modelClass === \App\Models\TrackingLog::class) {
+                            \App\Jobs\AnalyzeTrackingLogGeofences::dispatch(tenant('id'), $existingRecord);
                         }
                     }
                 }
