@@ -3,6 +3,15 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script>
+            window.onerror = function (message, source, lineno, colno, error) {
+                alert("JS Error: " + message + " at " + source + ":" + lineno + ":" + colno);
+                return false;
+            };
+            window.addEventListener('unhandledrejection', function (event) {
+                alert("Unhandled Promise Rejection: " + event.reason);
+            });
+        </script>
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
