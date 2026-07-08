@@ -64,6 +64,7 @@ class SyncService
                 [
                     'model' => class_basename($modelClass),
                     'count' => count($records),
+                    'records' => $records,
                 ]
             );
         }

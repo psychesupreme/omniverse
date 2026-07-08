@@ -33,6 +33,28 @@ onMounted(() => {
         })
         .listen('.SyncProcessed', (e) => {
             console.log('Sync processed event payload received:', e);
+            if (e.model === 'TrackingLog' && Array.isArray(e.records)) {
+                e.records.forEach((record) => {
+                    const userId = record.user_id;
+                    const location = record.location;
+                    if (location && typeof location.latitude === 'number' && typeof location.longitude === 'number') {
+                        const lat = location.latitude;
+                        const lng = location.longitude;
+
+                        // Check if marker for this worker/user already exists
+                        if (markers.value[userId]) {
+                            // Update marker coordinates dynamically
+                            markers.value[userId].setLatLng([lat, lng]);
+                        } else {
+                            // Create a new Leaflet marker, bind tooltip/popup, and store it
+                            const marker = L.marker([lat, lng])
+                                .bindPopup(`Worker #${userId}`)
+                                .addTo(mapInstance.value);
+                            markers.value[userId] = marker;
+                        }
+                    }
+                });
+            }
         });
 });
 </script>
