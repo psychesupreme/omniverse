@@ -97,7 +97,17 @@ class TenancyServiceProvider extends ServiceProvider
 
     public function register()
     {
-        //
+        $this->app->bind(DomainTenantResolver::class, function ($app) {
+            return new class($app->make(\Illuminate\Contracts\Cache\Factory::class)) extends DomainTenantResolver {
+                public function resolveWithoutCache(...$args): \Stancl\Tenancy\Contracts\Tenant
+                {
+                    if (isset($args[0])) {
+                        $args[0] = preg_replace('/:\d+$/', '', (string) $args[0]);
+                    }
+                    return parent::resolveWithoutCache(...$args);
+                }
+            };
+        });
     }
 
     public function boot()
