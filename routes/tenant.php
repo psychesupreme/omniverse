@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
-use Inertia\Inertia;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
@@ -30,10 +29,8 @@ Route::middleware([
     });
 
     Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard', [
-            'tenant_id' => tenant('id'),
-        ]);
-    })->middleware(['auth', 'verified'])->name('dashboard');
+        return \Inertia\Inertia::render('Dashboard', ['tenant_id' => tenant('id')]);
+    })->name('dashboard');
 
     Route::middleware('auth')->group(function () {
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
