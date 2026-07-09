@@ -59,29 +59,26 @@ onMounted(() => {
         if (Array.isArray(gf.boundary) && gf.boundary.length > 0) {
             const points = gf.boundary.map(p => [p.lat, p.lng]);
             L.polygon(points, {
-                color: '#4f46e5',
-                fillColor: '#818cf8',
-                fillOpacity: 0.15,
-                weight: 2,
+                color: 'red',
+                fillOpacity: 0.2,
             })
-            .bindPopup(`<strong>Geofence:</strong> ${gf.name}`)
+            .bindTooltip(gf.name)
             .addTo(map);
         }
     });
 
-    // Render Outlets (Circle Markers)
+    // Render Outlets (Circle Markers with Custom Icon)
     props.outlets.forEach(ot => {
         if (ot.location && typeof ot.location.latitude === 'number' && typeof ot.location.longitude === 'number') {
-            L.circleMarker([ot.location.latitude, ot.location.longitude], {
-                radius: 8,
-                fillColor: '#10b981',
-                color: '#047857',
-                weight: 2,
-                fillOpacity: 0.8,
-            })
-            .bindPopup(`<strong>Outlet:</strong> ${ot.name}`)
-            .bindTooltip(ot.name, { permanent: true, direction: 'top', className: 'outlet-tooltip' })
-            .addTo(map);
+            const outletIcon = L.divIcon({
+                className: 'custom-outlet-marker',
+                html: '<div style="background-color: #10b981; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #ffffff; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            });
+            L.marker([ot.location.latitude, ot.location.longitude], { icon: outletIcon })
+                .bindPopup(ot.name)
+                .addTo(map);
         }
     });
 
