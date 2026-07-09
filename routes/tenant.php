@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
+use Illuminate\Support\Facades\Broadcast;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,6 +40,9 @@ Route::middleware([
     });
 
     require __DIR__.'/auth.php';
+
+    Broadcast::routes();
+    require base_path('routes/channels.php');
 });
 
 Route::middleware([
