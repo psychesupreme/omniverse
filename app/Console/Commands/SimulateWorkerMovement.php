@@ -14,7 +14,7 @@ class SimulateWorkerMovement extends Command
      *
      * @var string
      */
-    protected $signature = 'app:simulate-movement {tenant_id} {user_id}';
+    protected $signature = 'app:simulate-movement {tenant_id} {user_id} {--steps=20}';
 
     /**
      * The console command description.
@@ -30,6 +30,7 @@ class SimulateWorkerMovement extends Command
     {
         $tenantId = $this->argument('tenant_id');
         $userId = $this->argument('user_id');
+        $steps = (int) $this->option('steps');
 
         // Initialize tenant context
         $tenant = Tenant::find($tenantId);
@@ -46,7 +47,8 @@ class SimulateWorkerMovement extends Command
 
         $this->info("Starting movement simulation for User #{$userId} on Tenant '{$tenantId}'...");
 
-        for ($i = 1; $i <= 20; $i++) {
+        $i = 1;
+        while ($steps === -1 || $i <= $steps) {
             // Apply a tiny random offset to simulate movement
             $lat += (rand(-5, 5) / 10000);
             $lng += (rand(-5, 5) / 10000);
@@ -69,6 +71,7 @@ class SimulateWorkerMovement extends Command
 
             $this->info("Iteration #{$i}: Pushed coordinates [Lat: {$lat}, Lng: {$lng}]");
 
+            $i++;
             sleep(2);
         }
 
