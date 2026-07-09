@@ -56,4 +56,12 @@ class SyncProcessed implements ShouldBroadcastNow
     {
         return $this->stats;
     }
+
+    /**
+     * The event's broadcast name.
+     */
+    public function broadcastAs(): string
+    {
+        return 'SyncProcessed';
+    }
 }

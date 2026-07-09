@@ -69,4 +69,12 @@ class GeofenceAlertTriggered implements ShouldBroadcastNow
             'timestamp' => now()->toIso8601String(),
         ];
     }
+
+    /**
+     * The event's broadcast name.
+     */
+    public function broadcastAs(): string
+    {
+        return 'GeofenceAlertTriggered';
+    }
 }
