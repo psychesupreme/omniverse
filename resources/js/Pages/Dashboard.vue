@@ -20,14 +20,32 @@ const props = defineProps({
         type: String,
         required: true,
     },
+    users: {
+        type: Array,
+        default: () => [],
+    },
+    geofences: {
+        type: Array,
+        default: () => [],
+    },
+    outlets: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const mapInstance = ref(null);
 const markers = ref({});
 
 onMounted(() => {
+    // Build user name lookup
+    const userNames = {};
+    props.users.forEach(u => {
+        userNames[u.id] = u.name;
+    });
+
     // Initialize the Leaflet map centered at Nairobi coordinates
-    const map = L.map('map').setView([-1.2921, 36.8219], 10);
+    const map = L.map('map').setView([-1.2921, 36.8219], 12); // slightly zoomed in
     mapInstance.value = map;
 
     // Add standard OpenStreetMap tile layer
@@ -35,6 +53,37 @@ onMounted(() => {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
+
+    // Render Geofences (Polygons)
+    props.geofences.forEach(gf => {
+        if (Array.isArray(gf.boundary) && gf.boundary.length > 0) {
+            const points = gf.boundary.map(p => [p.lat, p.lng]);
+            L.polygon(points, {
+                color: '#4f46e5',
+                fillColor: '#818cf8',
+                fillOpacity: 0.15,
+                weight: 2,
+            })
+            .bindPopup(`<strong>Geofence:</strong> ${gf.name}`)
+            .addTo(map);
+        }
+    });
+
+    // Render Outlets (Circle Markers)
+    props.outlets.forEach(ot => {
+        if (ot.location && typeof ot.location.latitude === 'number' && typeof ot.location.longitude === 'number') {
+            L.circleMarker([ot.location.latitude, ot.location.longitude], {
+                radius: 8,
+                fillColor: '#10b981',
+                color: '#047857',
+                weight: 2,
+                fillOpacity: 0.8,
+            })
+            .bindPopup(`<strong>Outlet:</strong> ${ot.name}`)
+            .bindTooltip(ot.name, { permanent: true, direction: 'top', className: 'outlet-tooltip' })
+            .addTo(map);
+        }
+    });
 
     // Subscribe to the tenant's private sync channel
     window.Echo.private('tenant.' + props.tenant_id + '.sync')
@@ -50,15 +99,19 @@ onMounted(() => {
                     if (location && typeof location.latitude === 'number' && typeof location.longitude === 'number') {
                         const lat = location.latitude;
                         const lng = location.longitude;
+                        const name = userNames[userId] || `Worker #${userId}`;
 
                         // Check if marker for this worker/user already exists
                         if (markers.value[userId]) {
                             // Update marker coordinates dynamically
                             markers.value[userId].setLatLng([lat, lng]);
+                            markers.value[userId].getPopup().setContent(name);
+                            markers.value[userId].getTooltip().setContent(name);
                         } else {
                             // Create a new Leaflet marker, bind tooltip/popup, and store it
                             const marker = L.marker([lat, lng])
-                                .bindPopup(`Worker #${userId}`)
+                                .bindPopup(name)
+                                .bindTooltip(name, { permanent: true, direction: 'top' })
                                 .addTo(mapInstance.value);
                             markers.value[userId] = marker;
                         }
