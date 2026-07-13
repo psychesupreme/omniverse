@@ -5,7 +5,7 @@ class ApiService {
   static const String baseUrl = 'http://172.31.176.1:8888/api/v1';
 
   /// Pull schema updates from the Laravel API sync endpoint
-  Future<void> pullSync(String tenantId, String token, String lastSync) async {
+  Future<Map<String, dynamic>> pullSync(String tenantId, String token, String lastSync) async {
     final url = Uri.parse('$baseUrl/sync/pull');
 
     final Map<String, dynamic> body = {
@@ -32,9 +32,14 @@ class ApiService {
 
       print('Pull Sync Response Code: ${response.statusCode}');
       print('Pull Sync Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
     } catch (e) {
       print('Error during pullSync: $e');
     }
+    return {};
   }
 
   /// Push local tracking log updates and outlets to the Laravel API sync endpoint
