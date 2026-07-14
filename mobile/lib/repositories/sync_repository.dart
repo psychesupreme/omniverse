@@ -108,19 +108,33 @@ class SyncRepository {
         i + batchSize > unsyncedLogs.length ? unsyncedLogs.length : i + batchSize,
       );
 
-      final List<Map<String, dynamic>> serializedLogs = chunk.map((log) => {
-        'id': log.fastId,
-        'user_id': log.userId,
-        'location': {
-          'latitude': log.latitude,
-          'longitude': log.longitude,
-        },
-        'speed': log.speed,
-        'recorded_at_mobile': log.recordedAtMobile.toUtc().toIso8601String(),
-        'version': log.version,
-        'last_updated_at': log.lastUpdatedAt.toUtc().toIso8601String(),
-        'deleted_at': null,
-      }).toList();
+      final List<Map<String, dynamic>> serializedLogs = [];
+      for (var log in chunk) {
+        double speedVal = 0.0;
+        DateTime recordedAt = log.lastUpdatedAt;
+
+        try {
+          speedVal = log.speed;
+        } catch (_) {}
+
+        try {
+          recordedAt = log.recordedAtMobile;
+        } catch (_) {}
+
+        serializedLogs.add({
+          'id': log.fastId,
+          'user_id': log.userId,
+          'location': {
+            'latitude': log.latitude,
+            'longitude': log.longitude,
+          },
+          'speed': speedVal,
+          'recorded_at_mobile': recordedAt.toUtc().toIso8601String(),
+          'version': log.version,
+          'last_updated_at': log.lastUpdatedAt.toUtc().toIso8601String(),
+          'deleted_at': null,
+        });
+      }
 
       final payload = {
         'client_timestamp': DateTime.now().toUtc().toIso8601String(),
