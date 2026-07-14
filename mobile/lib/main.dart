@@ -53,12 +53,63 @@ class _MyHomePageState extends State<MyHomePage> {
   late final ApiService _apiService;
   late final SyncRepository _syncRepository;
   bool _isLoading = false;
+  bool _isShiftActive = false;
 
   @override
   void initState() {
     super.initState();
     _apiService = ApiService();
     _syncRepository = SyncRepository(widget.isar);
+    _checkShiftStatus();
+  }
+
+  /// Initial checks to see if the background service is running
+  Future<void> _checkShiftStatus() async {
+    final active = await LocationService.isShiftActive();
+    setState(() {
+      _isShiftActive = active;
+    });
+  }
+
+  /// Toggles the background geolocation shift tracking states
+  Future<void> _toggleShift() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      if (_isShiftActive) {
+        await LocationService.stopShift();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Shift ended. Tracking disabled.')),
+          );
+        }
+      } else {
+        // Start shift for user ID 1 (Dave)
+        await LocationService.startShift(1);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Shift started. Tracking active.')),
+          );
+        }
+      }
+      // Give a tiny delay for service isolate bootstrapping
+      await Future.delayed(const Duration(milliseconds: 500));
+      await _checkShiftStatus();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to toggle shift: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   /// Triggers a test pull sync and stores the payload in the local database
@@ -113,12 +164,39 @@ class _MyHomePageState extends State<MyHomePage> {
                 children: [
                   CircularProgressIndicator(),
                   SizedBox(height: 16),
-                  Text('Synchronizing data...'),
+                  Text('Processing request...'),
                 ],
               )
-            : const Text(
-                'Database Initialized',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Database Initialized',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 32),
+                  ElevatedButton(
+                    onPressed: _toggleShift,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isShiftActive ? Colors.red : Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 20),
+                      textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    child: Text(_isShiftActive ? 'END SHIFT' : 'START SHIFT'),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _isShiftActive
+                        ? 'Tracker: ACTIVE - Logging every 60s'
+                        : 'Tracker: Inactive',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: _isShiftActive ? Colors.green : Colors.grey,
+                      fontWeight: _isShiftActive ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ],
               ),
       ),
       floatingActionButton: FloatingActionButton(
