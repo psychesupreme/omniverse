@@ -18,7 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        //
+        $middleware->alias([
+            'tenant.feature' => \App\Http\Middleware\CheckTenantFeature::class,
+            'tenant.limit'   => \App\Http\Middleware\CheckTenantLimit::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
