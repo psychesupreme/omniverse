@@ -6,6 +6,12 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
+    $host = request()->getHost();
+    $isTenantDomain = \Stancl\Tenancy\Database\Models\Domain::where('domain', $host)->exists();
+    if ($isTenantDomain) {
+        return redirect()->to('/dashboard');
+    }
+
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),

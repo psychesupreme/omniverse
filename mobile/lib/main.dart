@@ -68,7 +68,11 @@ class _MyHomePageState extends State<MyHomePage> {
       final data = await _apiService.pullSync('acme', '1|yfjt3ozySHpLlvFLsNsqmLKvFErORfJX3HGUovna80a03f55', '');
       
       // Save data locally using sync repository
-      await _syncRepository.savePulledData(data);
+      if (data.containsKey('data') && data['data'] != null) {
+        await _syncRepository.savePulledData(data['data'] as Map<String, dynamic>);
+      } else {
+        await _syncRepository.savePulledData(data);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
