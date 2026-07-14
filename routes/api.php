@@ -14,3 +14,7 @@ use App\Http\Controllers\Central\TenantRegistrationController;
 */
 
 Route::post('/tenants/register', [TenantRegistrationController::class, 'register']);
+
+// M-Pesa STK Push Payment Gateway Integration
+Route::middleware('auth:sanctum')->post('/billing/mpesa/stk', [App\Http\Controllers\Central\MpesaPaymentController::class, 'initiateStkPush']);
+Route::post('/billing/mpesa/callback', [App\Http\Controllers\Central\MpesaCallbackController::class, 'handleCallback']);
