@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
@@ -54,6 +55,8 @@ class _MyHomePageState extends State<MyHomePage> {
   late final SyncRepository _syncRepository;
   bool _isLoading = false;
   bool _isShiftActive = false;
+  int _localLogCount = 0;
+  Timer? _logTimer;
 
   @override
   void initState() {
@@ -61,6 +64,28 @@ class _MyHomePageState extends State<MyHomePage> {
     _apiService = ApiService();
     _syncRepository = SyncRepository(widget.isar);
     _checkShiftStatus();
+    _updateLogCount();
+    
+    // Periodically update the log count to show incoming coordinates in real-time
+    _logTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      _updateLogCount();
+    });
+  }
+
+  @override
+  void dispose() {
+    _logTimer?.cancel();
+    super.dispose();
+  }
+
+  /// Queries Isar for the count of locally stored tracking logs
+  Future<void> _updateLogCount() async {
+    final count = await widget.isar.trackingLogs.count();
+    if (mounted) {
+      setState(() {
+        _localLogCount = count;
+      });
+    }
   }
 
   /// Initial checks to see if the background service is running
@@ -194,6 +219,15 @@ class _MyHomePageState extends State<MyHomePage> {
                       fontSize: 14,
                       color: _isShiftActive ? Colors.green : Colors.grey,
                       fontWeight: _isShiftActive ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Stored Location Logs: $_localLogCount',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.teal,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
