@@ -114,19 +114,32 @@ class SyncRepository {
         DateTime recordedAt = log.lastUpdatedAt;
 
         try {
-          speedVal = log.speed;
+          final s = log.speed;
+          if (s.isFinite && !s.isNaN) {
+            speedVal = s;
+          }
         } catch (_) {}
 
         try {
           recordedAt = log.recordedAtMobile;
         } catch (_) {}
 
+        double latVal = 0.0;
+        if (log.latitude.isFinite && !log.latitude.isNaN) {
+          latVal = log.latitude;
+        }
+
+        double lngVal = 0.0;
+        if (log.longitude.isFinite && !log.longitude.isNaN) {
+          lngVal = log.longitude;
+        }
+
         serializedLogs.add({
           'id': log.fastId,
           'user_id': log.userId,
           'location': {
-            'latitude': log.latitude,
-            'longitude': log.longitude,
+            'latitude': latVal,
+            'longitude': lngVal,
           },
           'speed': speedVal,
           'recorded_at_mobile': recordedAt.toUtc().toIso8601String(),

@@ -112,12 +112,27 @@ class LocationService {
         final String logUuid = const Uuid().v4();
         final DateTime utcNow = DateTime.now().toUtc();
 
+        double speedVal = 0.0;
+        if (position.speed.isFinite && !position.speed.isNaN) {
+          speedVal = position.speed;
+        }
+
+        double latVal = 0.0;
+        if (position.latitude.isFinite && !position.latitude.isNaN) {
+          latVal = position.latitude;
+        }
+
+        double lngVal = 0.0;
+        if (position.longitude.isFinite && !position.longitude.isNaN) {
+          lngVal = position.longitude;
+        }
+
         final trackingLog = TrackingLog()
           ..fastId = logUuid
           ..userId = currentUserId
-          ..latitude = position.latitude
-          ..longitude = position.longitude
-          ..speed = position.speed
+          ..latitude = latVal
+          ..longitude = lngVal
+          ..speed = speedVal
           ..recordedAtMobile = utcNow
           ..version = 1
           ..lastUpdatedAt = utcNow
