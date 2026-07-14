@@ -50,5 +50,16 @@ Route::middleware([
         Route::post('/logout', [App\Http\Controllers\Api\V1\AuthController::class, 'logout']);
         Route::post('/sync/pull', [App\Http\Controllers\Api\V1\SyncController::class, 'pull']);
         Route::post('/sync/push', [App\Http\Controllers\Api\V1\SyncController::class, 'push']);
+
+        // Dispatcher CRUD routes for task management
+        Route::prefix('dispatch')->group(function () {
+            Route::apiResource('tasks', App\Http\Controllers\Api\V1\TaskController::class);
+        });
+
+        // Worker routes for viewing and updating assigned tasks
+        Route::prefix('mobile')->group(function () {
+            Route::get('tasks', [App\Http\Controllers\Api\V1\WorkerTaskController::class, 'index']);
+            Route::patch('tasks/{task}/status', [App\Http\Controllers\Api\V1\WorkerTaskController::class, 'updateStatus']);
+        });
     });
 });
