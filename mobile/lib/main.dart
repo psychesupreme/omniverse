@@ -137,14 +137,21 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  /// Triggers a test pull sync and stores the payload in the local database
+  /// Triggers a test push/pull sync and stores the payload in the local database
   Future<void> _performSync() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Pull data using actual seeded Sanctum token
+      // 1. Push any unsynced tracking logs cached locally
+      final pushedCount = await _syncRepository.pushUnsyncedLogs(
+        _apiService,
+        'acme',
+        '1|yfjt3ozySHpLlvFLsNsqmLKvFErORfJX3HGUovna80a03f55',
+      );
+
+      // 2. Pull data using actual seeded Sanctum token
       final data = await _apiService.pullSync('acme', '1|yfjt3ozySHpLlvFLsNsqmLKvFErORfJX3HGUovna80a03f55', '');
       
       // Save data locally using sync repository
@@ -156,7 +163,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sync completed successfully!')),
+          SnackBar(content: Text('Sync complete! Pushed $pushedCount logs.')),
         );
       }
     } catch (e) {

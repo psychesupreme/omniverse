@@ -117,6 +117,8 @@ class LocationService {
           ..userId = currentUserId
           ..latitude = position.latitude
           ..longitude = position.longitude
+          ..speed = position.speed
+          ..recordedAtMobile = utcNow
           ..version = 1
           ..lastUpdatedAt = utcNow
           ..isSynced = false

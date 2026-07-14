@@ -1,6 +1,7 @@
 import 'package:isar/isar.dart';
 import 'package:omniroute_mobile/collections/outlet.dart';
 import 'package:omniroute_mobile/collections/tracking_log.dart';
+import 'package:omniroute_mobile/services/api_service.dart';
 
 class SyncRepository {
   final Isar isar;
@@ -92,5 +93,56 @@ class SyncRepository {
         await isar.trackingLogs.putAll(updatedLogs);
       }
     });
+  }
+
+  /// Push all unsynced tracking logs to the server in chunks (default: 50 logs per batch)
+  Future<int> pushUnsyncedLogs(ApiService apiService, String tenantId, String token, {int batchSize = 50}) async {
+    final unsyncedLogs = await getUnsyncedLogs();
+    if (unsyncedLogs.isEmpty) return 0;
+
+    int totalSynced = 0;
+
+    for (int i = 0; i < unsyncedLogs.length; i += batchSize) {
+      final chunk = unsyncedLogs.sublist(
+        i,
+        i + batchSize > unsyncedLogs.length ? unsyncedLogs.length : i + batchSize,
+      );
+
+      final List<Map<String, dynamic>> serializedLogs = chunk.map((log) => {
+        'id': log.fastId,
+        'user_id': log.userId,
+        'location': {
+          'latitude': log.latitude,
+          'longitude': log.longitude,
+        },
+        'speed': log.speed,
+        'recorded_at_mobile': log.recordedAtMobile.toUtc().toIso8601String(),
+        'version': log.version,
+        'last_updated_at': log.lastUpdatedAt.toUtc().toIso8601String(),
+        'deleted_at': null,
+      }).toList();
+
+      final payload = {
+        'client_timestamp': DateTime.now().toUtc().toIso8601String(),
+        'data': {
+          'tracking_logs': serializedLogs,
+        },
+      };
+
+      // Push this batch chunk to the API
+      final success = await apiService.pushSync(tenantId, token, payload);
+      
+      if (success) {
+        // Collect local Isar IDs to mark as synced
+        final localIds = chunk.map((log) => log.id).toList();
+        await markLogsAsSynced(localIds);
+        totalSynced += chunk.length;
+      } else {
+        // If one batch fails, we break early to prevent subsequent timeouts
+        break;
+      }
+    }
+
+    return totalSynced;
   }
 }

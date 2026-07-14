@@ -47,13 +47,23 @@ const TrackingLogSchema = CollectionSchema(
       name: r'longitude',
       type: IsarType.double,
     ),
-    r'userId': PropertySchema(
+    r'recordedAtMobile': PropertySchema(
       id: 6,
+      name: r'recordedAtMobile',
+      type: IsarType.dateTime,
+    ),
+    r'speed': PropertySchema(
+      id: 7,
+      name: r'speed',
+      type: IsarType.double,
+    ),
+    r'userId': PropertySchema(
+      id: 8,
       name: r'userId',
       type: IsarType.long,
     ),
     r'version': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'version',
       type: IsarType.long,
     )
@@ -108,8 +118,10 @@ void _trackingLogSerialize(
   writer.writeDateTime(offsets[3], object.lastUpdatedAt);
   writer.writeDouble(offsets[4], object.latitude);
   writer.writeDouble(offsets[5], object.longitude);
-  writer.writeLong(offsets[6], object.userId);
-  writer.writeLong(offsets[7], object.version);
+  writer.writeDateTime(offsets[6], object.recordedAtMobile);
+  writer.writeDouble(offsets[7], object.speed);
+  writer.writeLong(offsets[8], object.userId);
+  writer.writeLong(offsets[9], object.version);
 }
 
 TrackingLog _trackingLogDeserialize(
@@ -126,8 +138,10 @@ TrackingLog _trackingLogDeserialize(
   object.lastUpdatedAt = reader.readDateTime(offsets[3]);
   object.latitude = reader.readDouble(offsets[4]);
   object.longitude = reader.readDouble(offsets[5]);
-  object.userId = reader.readLong(offsets[6]);
-  object.version = reader.readLong(offsets[7]);
+  object.recordedAtMobile = reader.readDateTime(offsets[6]);
+  object.speed = reader.readDouble(offsets[7]);
+  object.userId = reader.readLong(offsets[8]);
+  object.version = reader.readLong(offsets[9]);
   return object;
 }
 
@@ -151,8 +165,12 @@ P _trackingLogDeserializeProp<P>(
     case 5:
       return (reader.readDouble(offset)) as P;
     case 6:
-      return (reader.readLong(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 7:
+      return (reader.readDouble(offset)) as P;
+    case 8:
+      return (reader.readLong(offset)) as P;
+    case 9:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -745,6 +763,125 @@ extension TrackingLogQueryFilter
     });
   }
 
+  QueryBuilder<TrackingLog, TrackingLog, QAfterFilterCondition>
+      recordedAtMobileEqualTo(DateTime value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'recordedAtMobile',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackingLog, TrackingLog, QAfterFilterCondition>
+      recordedAtMobileGreaterThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'recordedAtMobile',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackingLog, TrackingLog, QAfterFilterCondition>
+      recordedAtMobileLessThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'recordedAtMobile',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackingLog, TrackingLog, QAfterFilterCondition>
+      recordedAtMobileBetween(
+    DateTime lower,
+    DateTime upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'recordedAtMobile',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackingLog, TrackingLog, QAfterFilterCondition> speedEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'speed',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackingLog, TrackingLog, QAfterFilterCondition>
+      speedGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'speed',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackingLog, TrackingLog, QAfterFilterCondition> speedLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'speed',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackingLog, TrackingLog, QAfterFilterCondition> speedBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'speed',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
   QueryBuilder<TrackingLog, TrackingLog, QAfterFilterCondition> userIdEqualTo(
       int value) {
     return QueryBuilder.apply(this, (query) {
@@ -935,6 +1072,32 @@ extension TrackingLogQuerySortBy
     });
   }
 
+  QueryBuilder<TrackingLog, TrackingLog, QAfterSortBy>
+      sortByRecordedAtMobile() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'recordedAtMobile', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackingLog, TrackingLog, QAfterSortBy>
+      sortByRecordedAtMobileDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'recordedAtMobile', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TrackingLog, TrackingLog, QAfterSortBy> sortBySpeed() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'speed', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackingLog, TrackingLog, QAfterSortBy> sortBySpeedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'speed', Sort.desc);
+    });
+  }
+
   QueryBuilder<TrackingLog, TrackingLog, QAfterSortBy> sortByUserId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'userId', Sort.asc);
@@ -1047,6 +1210,32 @@ extension TrackingLogQuerySortThenBy
     });
   }
 
+  QueryBuilder<TrackingLog, TrackingLog, QAfterSortBy>
+      thenByRecordedAtMobile() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'recordedAtMobile', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackingLog, TrackingLog, QAfterSortBy>
+      thenByRecordedAtMobileDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'recordedAtMobile', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TrackingLog, TrackingLog, QAfterSortBy> thenBySpeed() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'speed', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackingLog, TrackingLog, QAfterSortBy> thenBySpeedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'speed', Sort.desc);
+    });
+  }
+
   QueryBuilder<TrackingLog, TrackingLog, QAfterSortBy> thenByUserId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'userId', Sort.asc);
@@ -1111,6 +1300,19 @@ extension TrackingLogQueryWhereDistinct
     });
   }
 
+  QueryBuilder<TrackingLog, TrackingLog, QDistinct>
+      distinctByRecordedAtMobile() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'recordedAtMobile');
+    });
+  }
+
+  QueryBuilder<TrackingLog, TrackingLog, QDistinct> distinctBySpeed() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'speed');
+    });
+  }
+
   QueryBuilder<TrackingLog, TrackingLog, QDistinct> distinctByUserId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'userId');
@@ -1166,6 +1368,19 @@ extension TrackingLogQueryProperty
   QueryBuilder<TrackingLog, double, QQueryOperations> longitudeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'longitude');
+    });
+  }
+
+  QueryBuilder<TrackingLog, DateTime, QQueryOperations>
+      recordedAtMobileProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'recordedAtMobile');
+    });
+  }
+
+  QueryBuilder<TrackingLog, double, QQueryOperations> speedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'speed');
     });
   }
 

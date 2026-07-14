@@ -43,7 +43,7 @@ class ApiService {
   }
 
   /// Push local tracking log updates and outlets to the Laravel API sync endpoint
-  Future<void> pushSync(String tenantId, String token, Map<String, dynamic> payload) async {
+  Future<bool> pushSync(String tenantId, String token, Map<String, dynamic> payload) async {
     final url = Uri.parse('$baseUrl/sync/push');
 
     final headers = {
@@ -62,8 +62,11 @@ class ApiService {
 
       print('Push Sync Response Code: ${response.statusCode}');
       print('Push Sync Response Body: ${response.body}');
+      
+      return response.statusCode == 200;
     } catch (e) {
       print('Error during pushSync: $e');
+      return false;
     }
   }
 }

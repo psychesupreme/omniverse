@@ -15,6 +15,10 @@ class TrackingLog {
 
   late double longitude;
 
+  late double speed;
+
+  late DateTime recordedAtMobile;
+
   late int version;
 
   late DateTime lastUpdatedAt;
