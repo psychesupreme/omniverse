@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
@@ -16,6 +17,21 @@ class LocationService {
   /// Initialize the background service configuration parameters
   static Future<void> initializeService() async {
     final service = FlutterBackgroundService();
+
+    // Create Android notification channel explicitly to prevent startForeground crashes
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      notificationChannelId,
+      'Location Tracking',
+      description: 'This channel is used for tracking shift worker coordinates.',
+      importance: Importance.low,
+    );
+
+    final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+        FlutterLocalNotificationsPlugin();
+
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
 
     await service.configure(
       androidConfiguration: AndroidConfiguration(
