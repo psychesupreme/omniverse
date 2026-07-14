@@ -66,7 +66,7 @@ class GeofenceTest extends TestCase
             'data' => [
                 'tracking_logs' => [
                     [
-                        'id' => 777,
+                        'id' => '0b8402fb-702f-4cc2-a9cc-756eda6019f7',
                         'user_id' => 1,
                         'location' => ['latitude' => 5.0, 'longitude' => 5.0],
                         'speed' => 5.5,
@@ -111,7 +111,7 @@ class GeofenceTest extends TestCase
             'data' => [
                 'tracking_logs' => [
                     [
-                        'id' => 888,
+                        'id' => '0b8402fb-702f-4cc2-a9cc-756eda6019f8',
                         'user_id' => 1,
                         'location' => ['latitude' => 20.0, 'longitude' => 20.0],
                         'speed' => 5.5,

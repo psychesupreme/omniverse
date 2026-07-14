@@ -7,21 +7,21 @@ class TrackingLog {
   Id id = Isar.autoIncrement;
 
   @Index(unique: true, replace: true)
-  late String fastId;
+  String fastId = '';
 
-  late int userId;
+  int userId = 0;
 
-  late double latitude;
+  double latitude = 0.0;
 
-  late double longitude;
+  double longitude = 0.0;
 
-  late double speed;
+  double speed = 0.0;
 
-  late DateTime recordedAtMobile;
+  DateTime recordedAtMobile = DateTime.fromMillisecondsSinceEpoch(0);
 
-  late int version;
+  int version = 1;
 
-  late DateTime lastUpdatedAt;
+  DateTime lastUpdatedAt = DateTime.fromMillisecondsSinceEpoch(0);
 
   bool isSynced = false;
 

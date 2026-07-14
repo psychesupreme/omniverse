@@ -80,7 +80,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   /// Queries Isar for the count of locally stored tracking logs
   Future<void> _updateLogCount() async {
-    final count = await widget.isar.trackingLogs.count();
+    final count = await widget.isar.trackingLogs.filter().isSyncedEqualTo(false).count();
     if (mounted) {
       setState(() {
         _localLogCount = count;

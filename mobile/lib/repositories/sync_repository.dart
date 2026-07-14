@@ -53,6 +53,10 @@ class SyncRepository {
             ..userId = json['user_id'] as int
             ..latitude = (json['location']['latitude'] as num).toDouble()
             ..longitude = (json['location']['longitude'] as num).toDouble()
+            ..speed = double.tryParse(json['speed']?.toString() ?? '0.0') ?? 0.0
+            ..recordedAtMobile = json['recorded_at_mobile'] != null
+                ? DateTime.parse(json['recorded_at_mobile'] as String)
+                : DateTime.fromMillisecondsSinceEpoch(0)
             ..version = json['version'] as int
             ..lastUpdatedAt = DateTime.parse(json['last_updated_at'] as String)
             ..isSynced = true; // Mark incoming server logs as synced locally

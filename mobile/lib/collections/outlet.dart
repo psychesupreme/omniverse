@@ -7,15 +7,15 @@ class Outlet {
   Id id = Isar.autoIncrement;
 
   @Index(unique: true, replace: true)
-  late String fastId;
+  String fastId = '';
 
-  late String name;
+  String name = '';
 
-  late double latitude;
+  double latitude = 0.0;
 
-  late double longitude;
+  double longitude = 0.0;
 
-  late int version;
+  int version = 1;
 
-  late DateTime lastUpdatedAt;
+  DateTime lastUpdatedAt = DateTime.fromMillisecondsSinceEpoch(0);
 }

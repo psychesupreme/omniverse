@@ -16,8 +16,12 @@ class SyncService
     {
         DB::transaction(function () use ($modelClass, $records) {
             foreach ($records as $record) {
-                // Find existing record, including soft deleted ones
-                $existingRecord = $modelClass::withTrashed()->find($record['id']);
+                // Prevent UUID syntax error in PostgreSQL if ID is not a valid UUID format
+                if ($modelClass === \App\Models\TrackingLog::class && !\Illuminate\Support\Str::isUuid($record['id'])) {
+                    $existingRecord = null;
+                } else {
+                    $existingRecord = $modelClass::withTrashed()->find($record['id']);
+                }
 
                 if (!$existingRecord) {
                     // Create the record
