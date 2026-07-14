@@ -71,7 +71,13 @@ class TenancyServiceProvider extends ServiceProvider
             Events\TenancyInitialized::class => [
                 Listeners\BootstrapTenancy::class,
                 function (Events\TenancyInitialized $event) {
-                    \Illuminate\Support\Facades\DB::statement('SET search_path TO ' . $event->tenancy->tenant->getTenantKey() . ', public');
+                    $schema = $event->tenancy->tenant->database()->getName();
+                    config(['database.connections.tenant.search_path' => "{$schema},public"]);
+                    \Illuminate\Support\Facades\DB::purge('tenant');
+                    \Illuminate\Support\Facades\DB::statement("SET search_path TO {$schema}, public");
+                    try {
+                        \Illuminate\Support\Facades\DB::connection('tenant')->statement("SET search_path TO {$schema}, public");
+                    } catch (\Exception $e) {}
                 },
             ],
 

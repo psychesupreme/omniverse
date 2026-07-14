@@ -42,7 +42,7 @@ class PushSyncTest extends TestCase
     public function test_it_creates_new_records_pushed_from_mobile(): void
     {
         $outletId = 123;
-        $trackingLogId = 456;
+        $trackingLogId = '0b8402fb-702f-4cc2-a9cc-756eda6019f2';
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $this->token,
