@@ -61,7 +61,11 @@ class AnalyzeTrackingLogGeofences implements ShouldQueue
 
         // Dispatch geofence alert events
         foreach ($geofences as $geofence) {
-            \App\Events\GeofenceAlertTriggered::dispatch($this->tenantId, $this->trackingLog->user_id, $geofence->name);
+            try {
+                \App\Events\GeofenceAlertTriggered::dispatch($this->tenantId, $this->trackingLog->user_id, $geofence->name);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning("Broadcasting failed during geofence check: " . $e->getMessage());
+            }
         }
     }
 }

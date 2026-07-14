@@ -63,14 +63,18 @@ class SyncService
         });
 
         if (!empty($records)) {
-            \App\Events\SyncProcessed::dispatch(
-                tenant('id'),
-                [
-                    'model' => class_basename($modelClass),
-                    'count' => count($records),
-                    'records' => $records,
-                ]
-            );
+            try {
+                \App\Events\SyncProcessed::dispatch(
+                    tenant('id'),
+                    [
+                        'model' => class_basename($modelClass),
+                        'count' => count($records),
+                        'records' => $records,
+                    ]
+                );
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning("Broadcasting failed during push sync: " . $e->getMessage());
+            }
         }
     }
 
