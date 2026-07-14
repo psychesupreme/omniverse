@@ -64,8 +64,8 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     try {
-      // Pull data using dummy parameters for auth testing
-      final data = await _apiService.pullSync('acme', 'dummy_token', '');
+      // Pull data using actual seeded Sanctum token
+      final data = await _apiService.pullSync('acme', '1|yfjt3ozySHpLlvFLsNsqmLKvFErORfJX3HGUovna80a03f55', '');
       
       // Save data locally using sync repository
       await _syncRepository.savePulledData(data);
