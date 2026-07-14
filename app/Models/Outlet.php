@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Casts\PostgisPointCast;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Outlet extends Model
@@ -26,6 +27,10 @@ class Outlet extends Model
     protected $fillable = [
         'id',
         'name',
+        'phone',
+        'email',
+        'address',
+        'status',
         'location',
         'version',
         'last_updated_at',
@@ -37,7 +42,23 @@ class Outlet extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'location' => PostgisPointCast::class,
+        'location'        => PostgisPointCast::class,
         'last_updated_at' => 'datetime',
     ];
+
+    /**
+     * Get the interaction logs associated with this outlet.
+     */
+    public function interactionLogs(): HasMany
+    {
+        return $this->hasMany(InteractionLog::class, 'outlet_id');
+    }
+
+    /**
+     * Get the tasks associated with this outlet.
+     */
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class, 'outlet_id');
+    }
 }
