@@ -4,10 +4,14 @@ import 'package:path_provider/path_provider.dart';
 import 'package:omniroute_mobile/collections/outlet.dart';
 import 'package:omniroute_mobile/collections/tracking_log.dart';
 import 'package:omniroute_mobile/services/api_service.dart';
+import 'package:omniroute_mobile/services/location_service.dart';
 import 'package:omniroute_mobile/repositories/sync_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize background location tracking services
+  await LocationService.initializeService();
 
   final dir = await getApplicationDocumentsDirectory();
   final isar = await Isar.open(

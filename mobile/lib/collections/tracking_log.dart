@@ -20,4 +20,6 @@ class TrackingLog {
   late DateTime lastUpdatedAt;
 
   bool isSynced = false;
+
+  bool isMocked = false;
 }

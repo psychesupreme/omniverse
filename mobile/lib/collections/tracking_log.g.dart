@@ -22,33 +22,38 @@ const TrackingLogSchema = CollectionSchema(
       name: r'fastId',
       type: IsarType.string,
     ),
-    r'isSynced': PropertySchema(
+    r'isMocked': PropertySchema(
       id: 1,
+      name: r'isMocked',
+      type: IsarType.bool,
+    ),
+    r'isSynced': PropertySchema(
+      id: 2,
       name: r'isSynced',
       type: IsarType.bool,
     ),
     r'lastUpdatedAt': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'lastUpdatedAt',
       type: IsarType.dateTime,
     ),
     r'latitude': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'latitude',
       type: IsarType.double,
     ),
     r'longitude': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'longitude',
       type: IsarType.double,
     ),
     r'userId': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'userId',
       type: IsarType.long,
     ),
     r'version': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'version',
       type: IsarType.long,
     )
@@ -98,12 +103,13 @@ void _trackingLogSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.fastId);
-  writer.writeBool(offsets[1], object.isSynced);
-  writer.writeDateTime(offsets[2], object.lastUpdatedAt);
-  writer.writeDouble(offsets[3], object.latitude);
-  writer.writeDouble(offsets[4], object.longitude);
-  writer.writeLong(offsets[5], object.userId);
-  writer.writeLong(offsets[6], object.version);
+  writer.writeBool(offsets[1], object.isMocked);
+  writer.writeBool(offsets[2], object.isSynced);
+  writer.writeDateTime(offsets[3], object.lastUpdatedAt);
+  writer.writeDouble(offsets[4], object.latitude);
+  writer.writeDouble(offsets[5], object.longitude);
+  writer.writeLong(offsets[6], object.userId);
+  writer.writeLong(offsets[7], object.version);
 }
 
 TrackingLog _trackingLogDeserialize(
@@ -115,12 +121,13 @@ TrackingLog _trackingLogDeserialize(
   final object = TrackingLog();
   object.fastId = reader.readString(offsets[0]);
   object.id = id;
-  object.isSynced = reader.readBool(offsets[1]);
-  object.lastUpdatedAt = reader.readDateTime(offsets[2]);
-  object.latitude = reader.readDouble(offsets[3]);
-  object.longitude = reader.readDouble(offsets[4]);
-  object.userId = reader.readLong(offsets[5]);
-  object.version = reader.readLong(offsets[6]);
+  object.isMocked = reader.readBool(offsets[1]);
+  object.isSynced = reader.readBool(offsets[2]);
+  object.lastUpdatedAt = reader.readDateTime(offsets[3]);
+  object.latitude = reader.readDouble(offsets[4]);
+  object.longitude = reader.readDouble(offsets[5]);
+  object.userId = reader.readLong(offsets[6]);
+  object.version = reader.readLong(offsets[7]);
   return object;
 }
 
@@ -136,14 +143,16 @@ P _trackingLogDeserializeProp<P>(
     case 1:
       return (reader.readBool(offset)) as P;
     case 2:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 3:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 4:
       return (reader.readDouble(offset)) as P;
     case 5:
-      return (reader.readLong(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 6:
+      return (reader.readLong(offset)) as P;
+    case 7:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -530,6 +539,16 @@ extension TrackingLogQueryFilter
     });
   }
 
+  QueryBuilder<TrackingLog, TrackingLog, QAfterFilterCondition> isMockedEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isMocked',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<TrackingLog, TrackingLog, QAfterFilterCondition> isSyncedEqualTo(
       bool value) {
     return QueryBuilder.apply(this, (query) {
@@ -855,6 +874,18 @@ extension TrackingLogQuerySortBy
     });
   }
 
+  QueryBuilder<TrackingLog, TrackingLog, QAfterSortBy> sortByIsMocked() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isMocked', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackingLog, TrackingLog, QAfterSortBy> sortByIsMockedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isMocked', Sort.desc);
+    });
+  }
+
   QueryBuilder<TrackingLog, TrackingLog, QAfterSortBy> sortByIsSynced() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isSynced', Sort.asc);
@@ -955,6 +986,18 @@ extension TrackingLogQuerySortThenBy
     });
   }
 
+  QueryBuilder<TrackingLog, TrackingLog, QAfterSortBy> thenByIsMocked() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isMocked', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackingLog, TrackingLog, QAfterSortBy> thenByIsMockedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isMocked', Sort.desc);
+    });
+  }
+
   QueryBuilder<TrackingLog, TrackingLog, QAfterSortBy> thenByIsSynced() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isSynced', Sort.asc);
@@ -1038,6 +1081,12 @@ extension TrackingLogQueryWhereDistinct
     });
   }
 
+  QueryBuilder<TrackingLog, TrackingLog, QDistinct> distinctByIsMocked() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isMocked');
+    });
+  }
+
   QueryBuilder<TrackingLog, TrackingLog, QDistinct> distinctByIsSynced() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isSynced');
@@ -1086,6 +1135,12 @@ extension TrackingLogQueryProperty
   QueryBuilder<TrackingLog, String, QQueryOperations> fastIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'fastId');
+    });
+  }
+
+  QueryBuilder<TrackingLog, bool, QQueryOperations> isMockedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isMocked');
     });
   }
 
