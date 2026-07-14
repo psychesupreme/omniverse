@@ -16,7 +16,7 @@ class SyncRepository {
         final List<Outlet> outlets = [];
 
         for (var json in outletsJson) {
-          final String fastId = json['id'] as String;
+          final String fastId = json['id'].toString();
           final existing = await isar.outlets.filter().fastIdEqualTo(fastId).findFirst();
 
           final outlet = Outlet()
@@ -44,7 +44,7 @@ class SyncRepository {
         final List<TrackingLog> logs = [];
 
         for (var json in logsJson) {
-          final String fastId = json['id'] as String;
+          final String fastId = json['id'].toString();
           final existing = await isar.trackingLogs.filter().fastIdEqualTo(fastId).findFirst();
 
           final log = TrackingLog()
