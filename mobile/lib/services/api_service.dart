@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'http://172.31.176.1:8888/api/v1';
+  static const String baseUrl = 'http://192.168.2.54:8888/api/v1';
 
   /// Pull schema updates from the Laravel API sync endpoint
   Future<Map<String, dynamic>> pullSync(String tenantId, String token, String lastSync) async {
