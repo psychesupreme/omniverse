@@ -1,3 +1,14 @@
+buildscript {
+    ext.kotlin_version = '1.8.22'
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
 allprojects {
     repositories {
         google()
@@ -26,6 +37,30 @@ subprojects {
 // 2. THEN, we tell Gradle it is safe to evaluate the app (triggering the hook above)
 subprojects {
     project.evaluationDependsOn(":app")
+}
+
+// 3. Force modern Kotlin version across all subprojects (pusher_client override)
+subprojects {
+    buildscript {
+        repositories {
+            google()
+            mavenCentral()
+        }
+        configurations.all {
+            resolutionStrategy {
+                force "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.22"
+            }
+        }
+    }
+}
+
+// 4. Force JVM Target Compatibility to 1.8 for Kotlin Compile tasks across all subprojects
+subprojects {
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = "1.8"
+        }
+    }
 }
 
 tasks.register("clean", Delete) {
