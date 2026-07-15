@@ -55,6 +55,7 @@ Route::middleware([
         // Dispatcher CRUD routes for task management
         Route::prefix('dispatch')->group(function () {
             Route::apiResource('tasks', App\Http\Controllers\Api\V1\TaskController::class);
+            Route::apiResource('geofences', App\Http\Controllers\Api\V1\GeofenceController::class);
         });
 
         // Worker routes for viewing and updating assigned tasks

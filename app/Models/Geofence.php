@@ -26,7 +26,10 @@ class Geofence extends Model
     protected $fillable = [
         'id',
         'name',
+        'description',
         'boundary',
+        'area',
+        'is_active',
         'version',
         'last_updated_at',
     ];
@@ -37,7 +40,33 @@ class Geofence extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'boundary' => PostgisPolygonCast::class,
+        'boundary'        => PostgisPolygonCast::class,
+        'area'            => PostgisPolygonCast::class,
+        'is_active'       => 'boolean',
         'last_updated_at' => 'datetime',
     ];
+
+    /**
+     * Boot function to automatically keep boundary and area in sync.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($geofence) {
+            // Keep dynamic UUID generation if not set
+            if (empty($geofence->id)) {
+                $geofence->id = (string) \Illuminate\Support\Str::uuid();
+            }
+
+            // Sync boundary and area for backward compatibility by inspecting raw attributes
+            $attributes = $geofence->getAttributes();
+
+            if (array_key_exists('area', $attributes) && !array_key_exists('boundary', $attributes)) {
+                $geofence->attributes['boundary'] = $attributes['area'];
+            } elseif (array_key_exists('boundary', $attributes) && !array_key_exists('area', $attributes)) {
+                $geofence->attributes['area'] = $attributes['boundary'];
+            }
+        });
+    }
 }
