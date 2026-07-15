@@ -17,4 +17,12 @@ export default defineConfig({
             },
         }),
     ],
+    // ADD THIS SERVER BLOCK:
+    server: {
+        host: '127.0.0.1',
+        cors: true,
+        hmr: {
+            host: 'localhost',
+        },
+    },
 });

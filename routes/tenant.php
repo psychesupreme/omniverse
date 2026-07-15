@@ -47,6 +47,7 @@ Route::middleware([
     PreventAccessFromCentralDomains::class,
 ])->prefix('api/v1')->group(function () {
     Route::post('/login', [App\Http\Controllers\Api\V1\AuthController::class, 'login']);
+    Route::post('/mobile/login', [App\Http\Controllers\Api\V1\MobileAuthController::class, 'login']);
     
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [App\Http\Controllers\Api\V1\AuthController::class, 'logout']);
