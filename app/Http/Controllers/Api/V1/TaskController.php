@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Events\TaskAssigned;
 use App\Http\Controllers\Controller;
 use App\Models\Task;
 use Illuminate\Http\JsonResponse;
@@ -53,6 +54,9 @@ class TaskController extends Controller
                 'status'           => 'pending',
             ]);
 
+            // Dispatch TaskAssigned event for real-time broadcast to worker
+            TaskAssigned::dispatch($task);
+
             return response()->json([
                 'message' => 'Task created and dispatched successfully.',
                 'task'    => $task->load(['outlet', 'assignedUser']),
@@ -91,6 +95,11 @@ class TaskController extends Controller
 
         try {
             $task->update($validated);
+
+            // Dispatch TaskAssigned event if the assigned user changed
+            if ($task->wasChanged('assigned_user_id')) {
+                TaskAssigned::dispatch($task);
+            }
 
             return response()->json([
                 'message' => 'Task updated successfully.',

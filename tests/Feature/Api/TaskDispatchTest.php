@@ -223,4 +223,37 @@ class TaskDispatchTest extends TestCase
         $files = \Illuminate\Support\Facades\Storage::disk('public')->allFiles();
         $this->assertEmpty($files);
     }
+
+    public function test_task_assigned_event_dispatched_on_creation_and_reassignment()
+    {
+        \Illuminate\Support\Facades\Event::fake();
+
+        // 1. Create task via API
+        $response = $this->withToken($this->managerToken)->postJson('http://test.localhost/api/v1/dispatch/tasks', [
+            'outlet_id'        => $this->outlet->id,
+            'assigned_user_id' => $this->worker->id,
+            'title'            => 'Event test task',
+            'scheduled_for'    => now()->addDays(2)->toIso8601String(),
+        ]);
+
+        $response->assertStatus(201);
+        $taskId = $response->json('task.id');
+
+        // Assert TaskAssigned event was dispatched
+        \Illuminate\Support\Facades\Event::assertDispatched(\App\Events\TaskAssigned::class, function ($event) {
+            return $event->task->title === 'Event test task' && (int) $event->task->assigned_user_id === (int) $this->worker->id;
+        });
+
+        // 2. Reassign task to another worker
+        $response = $this->withToken($this->managerToken)->patchJson("http://test.localhost/api/v1/dispatch/tasks/{$taskId}", [
+            'assigned_user_id' => $this->otherWorker->id,
+        ]);
+
+        $response->assertStatus(200);
+
+        // Assert TaskAssigned event was dispatched for the new worker
+        \Illuminate\Support\Facades\Event::assertDispatched(\App\Events\TaskAssigned::class, function ($event) {
+            return (int) $event->task->assigned_user_id === (int) $this->otherWorker->id;
+        });
+    }
 }

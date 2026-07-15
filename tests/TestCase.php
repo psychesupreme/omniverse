@@ -5,6 +5,7 @@ namespace Tests;
 use App\Models\Tenant;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -32,6 +33,16 @@ abstract class TestCase extends BaseTestCase
         // Migrate central database once per test suite run
         if (!static::$migrated) {
             Artisan::call('migrate:fresh');
+            
+            // Clean up any legacy tenant database schemas to ensure a clean slate
+            try {
+                DB::statement('DROP SCHEMA IF EXISTS tenanttest CASCADE');
+                DB::statement('DROP SCHEMA IF EXISTS "tenantacme-test-1" CASCADE');
+                DB::statement('DROP SCHEMA IF EXISTS tenantacme CASCADE');
+            } catch (\Exception $e) {
+                // Silence schema drops if they don't exist
+            }
+
             static::$migrated = true;
         }
 
@@ -60,10 +71,11 @@ abstract class TestCase extends BaseTestCase
      */
     protected function tearDown(): void
     {
-        if ($this->tenant) {
-            $this->tenant->delete();
-            $this->tenant = null;
+        if (tenancy()->initialized) {
+            tenancy()->end();
         }
+
+        $this->tenant = null;
 
         parent::tearDown();
     }

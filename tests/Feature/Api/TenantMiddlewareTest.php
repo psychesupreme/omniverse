@@ -31,6 +31,10 @@ class TenantMiddlewareTest extends TestCase
 
     protected function tearDown(): void
     {
+        if (tenancy()->initialized) {
+            tenancy()->end();
+        }
+
         // Clean up all dynamically created tenants
         foreach ($this->createdTenantIds as $id) {
             if ($tenant = Tenant::find($id)) {
