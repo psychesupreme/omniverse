@@ -25,6 +25,17 @@ const props = defineProps({
     },
 });
 
+// Notifications (Toasts) State
+const notifications = ref([]);
+
+const addNotification = (message, type) => {
+    const id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+    notifications.value.push({ id, message, type });
+    setTimeout(() => {
+        notifications.value = notifications.value.filter(n => n.id !== id);
+    }, 5000);
+};
+
 // Task dispatch form data
 const form = reactive({
     outlet_id: '',
@@ -152,7 +163,7 @@ onMounted(() => {
         map.fitBounds(bounds, { padding: [50, 50] });
     }
 
-    // 4. Connect to Laravel Reverb via Echo for real-time telemetry updates
+    // 4. Connect to Laravel Reverb via Echo for real-time telemetry updates and geofencing alerts
     if (window.Echo) {
         window.Echo.private(`tenant.${props.tenant_id}.telemetry`)
             .listen('.WorkerLocationUpdated', (e) => {
@@ -174,12 +185,21 @@ onMounted(() => {
                     workerMarkers[workerId] = marker;
                 }
             });
+
+        window.Echo.private(`tenant.${props.tenant_id}.dispatch`)
+            .listen('.WorkerEnteredGeofence', (e) => {
+                addNotification(`${e.worker_name} entered ${e.geofence_name}`, 'entry');
+            })
+            .listen('.WorkerExitedGeofence', (e) => {
+                addNotification(`${e.worker_name} exited ${e.geofence_name}`, 'exit');
+            });
     }
 });
 
 onUnmounted(() => {
     if (window.Echo) {
         window.Echo.leave(`tenant.${props.tenant_id}.telemetry`);
+        window.Echo.leave(`tenant.${props.tenant_id}.dispatch`);
     }
 });
 </script>
@@ -357,6 +377,37 @@ onUnmounted(() => {
 
                 </div>
             </div>
+        </div>
+
+        <!-- Notification Toasts Container -->
+        <div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full">
+            <TransitionGroup
+                enter-active-class="transform ease-out duration-300 transition"
+                enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
+                enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
+                leave-active-class="transition ease-in duration-100"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+            >
+                <div 
+                    v-for="toast in notifications" 
+                    :key="toast.id"
+                    class="p-4 rounded-xl shadow-lg border flex items-center gap-3 bg-white transition-all duration-300 hover:shadow-xl"
+                    :class="{
+                        'bg-emerald-50 border-emerald-200 text-emerald-800': toast.type === 'entry',
+                        'bg-amber-50 border-amber-200 text-amber-800': toast.type === 'exit'
+                    }"
+                >
+                    <!-- SVG Icons for alerts -->
+                    <svg v-if="toast.type === 'entry'" class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
+                    </svg>
+                    <svg v-if="toast.type === 'exit'" class="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 003 3h6a3 3 0 003-3V7a3 3 0 00-3-3h-6a3 3 0 00-3 3v1"></path>
+                    </svg>
+                    <span class="text-sm font-semibold">{{ toast.message }}</span>
+                </div>
+            </TransitionGroup>
         </div>
     </AuthenticatedLayout>
 </template>
