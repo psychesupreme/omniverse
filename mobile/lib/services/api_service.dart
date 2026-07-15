@@ -1,50 +1,54 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'api_client.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.2.54:8888/api/v1';
+  final ApiClient _apiClient = ApiClient();
+  final _storage = const FlutterSecureStorage();
 
-  /// Authenticate worker via Sanctum API
+  /// Authenticate worker via mobile Sanctum API using Dio
   Future<Map<String, dynamic>?> login(String tenantId, String email, String password) async {
-    final url = Uri.parse('$baseUrl/login');
-
-    final headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Host': '$tenantId.localhost', // Resolve tenant database context
-    };
-
-    final body = {
-      'email': email,
-      'password': password,
-    };
-
     try {
-      final response = await http.post(
-        url,
-        headers: headers,
-        body: jsonEncode(body),
+      final response = await _apiClient.dio.post(
+        '/mobile/login',
+        data: {
+          'email': email,
+          'password': password,
+        },
       );
 
       print('Login Response Code: ${response.statusCode}');
-      print('Login Response Body: ${response.body}');
+      print('Login Response Body: ${response.data}');
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body) as Map<String, dynamic>;
+        final data = response.data as Map<String, dynamic>;
+        final token = data['token'] as String;
+        final user = data['user'] as Map<String, dynamic>;
+
+        // Store token securely
+        await _storage.write(key: 'token', value: token);
+
+        // Map keys to match existing login screen expectations
+        return {
+          'token': token,
+          'user_id': user['id'] as int,
+          'name': user['name'] as String,
+        };
       } else {
-        final errorData = jsonDecode(response.body);
-        throw Exception(errorData['message'] ?? 'Invalid credentials.');
+        throw Exception('Invalid credentials.');
       }
+    } on DioException catch (e) {
+      print('Dio Error during login: ${e.message}');
+      final errorMessage = e.response?.data['message'] ?? 'Invalid credentials.';
+      throw Exception(errorMessage);
     } catch (e) {
-      print('Error during login: $e');
+      print('General Error during login: $e');
       rethrow;
     }
   }
 
   /// Pull schema updates from the Laravel API sync endpoint
   Future<Map<String, dynamic>> pullSync(String tenantId, String token, String lastSync) async {
-    final url = Uri.parse('$baseUrl/sync/pull');
-
     final Map<String, dynamic> body = {
       'collections': ['outlets', 'tracking_logs'],
     };
@@ -53,25 +57,16 @@ class ApiService {
       body['last_sync_timestamp'] = lastSync;
     }
 
-    final headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': 'Bearer $token',
-      'Host': '$tenantId.localhost', // Resolve tenant database context
-    };
-
     try {
-      final response = await http.post(
-        url,
-        headers: headers,
-        body: jsonEncode(body),
+      final response = await _apiClient.dio.post(
+        '/sync/pull',
+        data: body,
       );
 
       print('Pull Sync Response Code: ${response.statusCode}');
-      print('Pull Sync Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body) as Map<String, dynamic>;
+        return response.data as Map<String, dynamic>;
       }
     } catch (e) {
       print('Error during pullSync: $e');
@@ -81,24 +76,13 @@ class ApiService {
 
   /// Push local tracking log updates and outlets to the Laravel API sync endpoint
   Future<bool> pushSync(String tenantId, String token, Map<String, dynamic> payload) async {
-    final url = Uri.parse('$baseUrl/sync/push');
-
-    final headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': 'Bearer $token',
-      'Host': '$tenantId.localhost', // Resolve tenant database context
-    };
-
     try {
-      final response = await http.post(
-        url,
-        headers: headers,
-        body: jsonEncode(payload),
+      final response = await _apiClient.dio.post(
+        '/sync/push',
+        data: payload,
       );
 
       print('Push Sync Response Code: ${response.statusCode}');
-      print('Push Sync Response Body: ${response.body}');
       
       return response.statusCode == 200;
     } catch (e) {
