@@ -63,6 +63,7 @@ class TaskDispatchTest extends TestCase
 
     protected function tearDown(): void
     {
+        Task::flushEventListeners();
         Task::query()->delete();
         Outlet::withTrashed()->forceDelete();
         User::query()->delete();
@@ -158,5 +159,68 @@ class TaskDispatchTest extends TestCase
 
         $response->assertStatus(403);
         $this->assertEquals('pending', $task->fresh()->status);
+    }
+
+    public function test_worker_can_complete_task_with_evidence_photo()
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+
+        // 1. Create a pending task
+        $task = Task::create([
+            'outlet_id'        => $this->outlet->id,
+            'assigned_user_id' => $this->worker->id,
+            'title'            => 'Task with photo',
+            'scheduled_for'    => now()->addHour(),
+            'status'           => 'pending',
+        ]);
+
+        $file = \Illuminate\Http\UploadedFile::fake()->image('evidence.jpg');
+
+        // 2. Complete the task and upload file
+        $response = $this->withToken($this->workerToken)->patchJson("http://test.localhost/api/v1/mobile/tasks/{$task->id}/status", [
+            'status'         => 'completed',
+            'evidence_photo' => $file,
+        ]);
+
+        $response->assertStatus(200);
+
+        $task = $task->fresh();
+        $this->assertEquals('completed', $task->status);
+        $this->assertNotNull($task->evidence_photo_path);
+
+        // Verify stored file path format: tenants/{tenant_id}/tasks/evidence/{filename}
+        $this->assertStringContainsString('tenants/test/tasks/evidence', $task->evidence_photo_path);
+        \Illuminate\Support\Facades\Storage::disk('public')->assertExists($task->evidence_photo_path);
+    }
+
+    public function test_photo_is_cleaned_up_if_database_update_fails()
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+
+        $task = Task::create([
+            'outlet_id'        => $this->outlet->id,
+            'assigned_user_id' => $this->worker->id,
+            'title'            => 'Failed save task',
+            'scheduled_for'    => now()->addHour(),
+            'status'           => 'pending',
+        ]);
+
+        // Register a saving event listener on the Task model to throw an exception and mock database write failure
+        Task::saving(function ($task) {
+            throw new \Exception('Database write failed');
+        });
+
+        $file = \Illuminate\Http\UploadedFile::fake()->image('evidence.jpg');
+
+        $response = $this->withToken($this->workerToken)->patchJson("http://test.localhost/api/v1/mobile/tasks/{$task->id}/status", [
+            'status'         => 'completed',
+            'evidence_photo' => $file,
+        ]);
+
+        $response->assertStatus(500);
+
+        // Assert the uploaded file was cleaned up/deleted from the storage disk
+        $files = \Illuminate\Support\Facades\Storage::disk('public')->allFiles();
+        $this->assertEmpty($files);
     }
 }

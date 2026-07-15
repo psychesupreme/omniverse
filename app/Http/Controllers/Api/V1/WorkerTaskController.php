@@ -7,6 +7,7 @@ use App\Http\Requests\TaskStatusUpdateRequest;
 use App\Models\Task;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class WorkerTaskController extends Controller
 {
@@ -38,6 +39,7 @@ class WorkerTaskController extends Controller
         }
 
         $validated = $request->validated();
+        $storedFilePath = null;
 
         try {
             $updateData = [
@@ -46,9 +48,16 @@ class WorkerTaskController extends Controller
 
             if ($validated['status'] === 'completed') {
                 $updateData['completed_at'] = now();
+
+                // If request contains an evidence photo file, store it
+                if ($request->hasFile('evidence_photo')) {
+                    $tenantId = tenant('id') ?? 'default';
+                    $storedFilePath = $request->file('evidence_photo')->store("tenants/{$tenantId}/tasks/evidence", 'public');
+                    $updateData['evidence_photo_path'] = $storedFilePath;
+                }
             }
 
-            if (isset($validated['evidence_photo_path'])) {
+            if (isset($validated['evidence_photo_path']) && !isset($updateData['evidence_photo_path'])) {
                 $updateData['evidence_photo_path'] = $validated['evidence_photo_path'];
             }
 
@@ -60,6 +69,11 @@ class WorkerTaskController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            // Delete the uploaded file if database update failed to prevent orphaned files
+            if ($storedFilePath) {
+                Storage::disk('public')->delete($storedFilePath);
+            }
+
             Log::error('Worker task status update failed: ' . $e->getMessage());
             return response()->json([
                 'message' => 'An error occurred while updating the task status.',

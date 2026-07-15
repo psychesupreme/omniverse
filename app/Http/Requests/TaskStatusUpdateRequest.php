@@ -29,6 +29,7 @@ class TaskStatusUpdateRequest extends FormRequest
                 Rule::in(['accepted', 'in_progress', 'completed', 'cancelled']),
             ],
             'evidence_photo_path' => ['nullable', 'string', 'max:255'],
+            'evidence_photo'      => ['nullable', 'file', 'image', 'mimes:jpeg,png,jpg', 'max:5120'],
         ];
     }
 }
