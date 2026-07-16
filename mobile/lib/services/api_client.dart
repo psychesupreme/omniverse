@@ -5,7 +5,7 @@ class ApiClient {
   final Dio dio;
   final _storage = const FlutterSecureStorage();
 
-  ApiClient({String localIp = '192.168.2.54', String port = '8888'})
+  ApiClient({String localIp = '192.168.100.40', String port = '8888'})
       : dio = Dio(
           BaseOptions(
             baseUrl: 'http://$localIp:$port/api/v1',
