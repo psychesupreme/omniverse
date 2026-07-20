@@ -21,5 +21,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
+        \Illuminate\Support\Facades\Event::subscribe(\App\Listeners\AutomateWorkerTimesheet::class);
     }
 }
