@@ -47,6 +47,14 @@ class SubscriptionPlan extends Model
     }
 
     /**
+     * Alias max_users as max_workers.
+     */
+    public function getMaxWorkersAttribute(): int
+    {
+        return $this->max_users;
+    }
+
+    /**
      * Get the tenants subscribed to this plan.
      */
     public function tenants(): HasMany

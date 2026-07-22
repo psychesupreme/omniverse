@@ -33,6 +33,9 @@ Route::middleware([
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
         Route::get('/dispatch', [\App\Http\Controllers\DispatcherController::class, 'index'])->name('dispatch.index');
         Route::get('/dispatch/geofences', [\App\Http\Controllers\GeofenceWebController::class, 'index'])->name('dispatch.geofences');
+        Route::get('/dispatch/products', [\App\Http\Controllers\ProductWebController::class, 'index'])->name('dispatch.products.index');
+        Route::get('/dispatch/orders', [\App\Http\Controllers\OrderWebController::class, 'index'])->name('dispatch.orders.index');
+        Route::get('/dispatch/timesheets', [\App\Http\Controllers\TimesheetWebController::class, 'index'])->name('dispatch.timesheets.index');
     });
 
     require __DIR__.'/auth.php';
@@ -54,16 +57,23 @@ Route::middleware([
         Route::post('/sync/pull', [App\Http\Controllers\Api\V1\SyncController::class, 'pull']);
         Route::post('/sync/push', [App\Http\Controllers\Api\V1\SyncController::class, 'push']);
 
-        // Dispatcher CRUD routes for task management
+        // Dispatcher CRUD routes for task, geofence, product, order, and timesheet management
         Route::prefix('dispatch')->group(function () {
             Route::apiResource('tasks', App\Http\Controllers\Api\V1\TaskController::class);
             Route::apiResource('geofences', App\Http\Controllers\Api\V1\GeofenceController::class);
+            Route::apiResource('products', App\Http\Controllers\Api\V1\ProductController::class);
+            Route::apiResource('orders', App\Http\Controllers\Api\V1\OrderController::class)->except(['store', 'update', 'destroy']);
+            Route::patch('orders/{order}/status', [App\Http\Controllers\Api\V1\OrderController::class, 'updateStatus']);
+            Route::get('timesheets', [App\Http\Controllers\Api\V1\TimesheetController::class, 'index']);
+            Route::post('timesheets/{timesheet}/override', [App\Http\Controllers\Api\V1\TimesheetController::class, 'manualOverride']);
+            Route::post('routes/optimize', [App\Http\Controllers\Api\V1\RouteOptimizationController::class, 'optimize']);
         });
 
         // Worker routes for viewing and updating assigned tasks
         Route::prefix('mobile')->group(function () {
             Route::get('tasks', [App\Http\Controllers\Api\V1\WorkerTaskController::class, 'index']);
             Route::patch('tasks/{task}/status', [App\Http\Controllers\Api\V1\WorkerTaskController::class, 'updateStatus']);
+            Route::get('timesheet/active', [App\Http\Controllers\Api\V1\TimesheetController::class, 'activeShift']);
         });
     });
 });

@@ -49,7 +49,13 @@ const isSubmitting = ref(false);
 
 // Map and markers references
 let map = null;
+let routeLayer = null;
 const workerMarkers = {};
+
+// Selected Worker & Route Optimization State
+const selectedWorker = ref(null);
+const isOptimizingRoute = ref(false);
+const activeRouteSummary = ref(null);
 
 // Custom premium SVG Leaflet markers
 const outletIcon = L.divIcon({
@@ -85,6 +91,84 @@ const formatDate = (dateStr) => {
     return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
+function selectWorker(worker) {
+    selectedWorker.value = worker;
+    if (workerMarkers[worker.id]) {
+        map.panTo(workerMarkers[worker.id].getLatLng());
+        workerMarkers[worker.id].openPopup();
+    }
+}
+
+function clearActiveRoute() {
+    if (routeLayer) {
+        map.removeLayer(routeLayer);
+        routeLayer = null;
+    }
+    activeRouteSummary.value = null;
+}
+
+function optimizeWorkerRoute() {
+    if (!selectedWorker.value) return;
+
+    const worker = selectedWorker.value;
+    let startLat = worker.location?.latitude;
+    let startLng = worker.location?.longitude;
+
+    if (workerMarkers[worker.id]) {
+        const pos = workerMarkers[worker.id].getLatLng();
+        startLat = pos.lat;
+        startLng = pos.lng;
+    }
+
+    if (!startLat || !startLng) {
+        addNotification(`No location telemetry available for ${worker.name}`, 'exit');
+        return;
+    }
+
+    isOptimizingRoute.value = true;
+
+    axios.post('/api/v1/dispatch/routes/optimize', {
+        worker_id: worker.id,
+        start_latitude: startLat,
+        start_longitude: startLng,
+    })
+    .then((response) => {
+        const data = response.data;
+        clearActiveRoute();
+
+        if (data.geojson && data.geojson.features && data.geojson.features.length > 0) {
+            routeLayer = L.geoJSON(data.geojson, {
+                style: {
+                    color: '#4f46e5', // Indigo-600
+                    weight: 5,
+                    opacity: 0.85,
+                    dashArray: '8, 8',
+                },
+            }).addTo(map);
+
+            map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
+
+            activeRouteSummary.value = {
+                workerName: worker.name,
+                totalStops: data.tasks ? data.tasks.length : 0,
+                totalDistanceKm: data.total_distance_km,
+                estimatedTimeMins: data.estimated_time_mins,
+            };
+
+            addNotification(`Optimal route calculated for ${worker.name}!`, 'entry');
+        } else {
+            addNotification(`No pending tasks found for ${worker.name}`, 'exit');
+        }
+    })
+    .catch((error) => {
+        console.error('Route optimization error:', error);
+        addNotification('Failed to optimize route', 'exit');
+    })
+    .finally(() => {
+        isOptimizingRoute.value = false;
+    });
+}
+
 // Dispatch a task
 const submitTask = () => {
     isSubmitting.value = true;
@@ -96,7 +180,7 @@ const submitTask = () => {
         title: form.title,
         scheduled_for: form.scheduled_for,
     })
-    .then((response) => {
+    .then(() => {
         form.outlet_id = '';
         form.assigned_user_id = '';
         form.title = '';
@@ -153,6 +237,8 @@ onMounted(() => {
                         <p class="text-xs text-gray-500 mt-1">${worker.email}</p>
                     </div>
                 `);
+            
+            marker.on('click', () => selectWorker(worker));
             workerMarkers[worker.id] = marker;
             bounds.push([worker.location.latitude, worker.location.longitude]);
         }
@@ -210,7 +296,7 @@ onUnmounted(() => {
     <AuthenticatedLayout>
         <template #header>
             <h2 class="text-xl font-bold leading-tight text-gray-800">
-                Real-Time CRM & Task Dispatching
+                Real-Time Operations & Route Optimization
             </h2>
         </template>
 
@@ -219,9 +305,59 @@ onUnmounted(() => {
                 <!-- Outer 2-Column layout -->
                 <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     
-                    <!-- Left column: Tasks list and dispatch form -->
+                    <!-- Left column: Dispatch Form & Workers Drawer -->
                     <div class="space-y-6 lg:col-span-1">
                         
+                        <!-- Field Workers Drawer Panel -->
+                        <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                            <h3 class="text-lg font-bold text-gray-900 mb-3 flex items-center justify-between">
+                                <span class="flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    Active Workers
+                                </span>
+                                <span class="text-xs bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full">{{ workers.length }}</span>
+                            </h3>
+
+                            <div class="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                                <div
+                                    v-for="worker in workers"
+                                    :key="worker.id"
+                                    @click="selectWorker(worker)"
+                                    :class="[
+                                        selectedWorker?.id === worker.id ? 'border-indigo-500 bg-indigo-50/50 shadow-xs' : 'border-gray-100 hover:bg-gray-50',
+                                        'p-3 rounded-lg border cursor-pointer transition-all flex items-center justify-between'
+                                    ]"
+                                >
+                                    <div>
+                                        <p class="text-sm font-bold text-gray-900">{{ worker.name }}</p>
+                                        <p class="text-xs text-gray-500">{{ worker.email }}</p>
+                                    </div>
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                </div>
+                            </div>
+
+                            <!-- Selected Worker Detail Drawer & Route Optimization Button -->
+                            <div v-if="selectedWorker" class="mt-4 pt-4 border-t border-gray-100 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-semibold text-gray-500 uppercase">Selected Worker</span>
+                                    <span class="text-xs font-bold text-indigo-600">{{ selectedWorker.name }}</span>
+                                </div>
+                                <button
+                                    @click="optimizeWorkerRoute"
+                                    :disabled="isOptimizingRoute"
+                                    class="w-full inline-flex justify-center items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white shadow hover:bg-indigo-700 focus:outline-none transition-colors disabled:opacity-50"
+                                >
+                                    <svg v-if="isOptimizingRoute" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    ⚡ Optimize Worker Route
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- Dispatch form -->
                         <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                             <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -299,62 +435,11 @@ onUnmounted(() => {
                                 </button>
                             </form>
                         </div>
-
-                        <!-- Today's tasks panel -->
-                        <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                            <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center justify-between">
-                                <span class="flex items-center gap-2">
-                                    <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-                                    </svg>
-                                    Today's Dispatched Tasks
-                                </span>
-                                <span class="text-xs bg-gray-100 text-gray-600 font-bold px-2 py-0.5 rounded-full">{{ tasks.length }}</span>
-                            </h3>
-
-                            <div class="flow-root max-h-[300px] overflow-y-auto pr-1">
-                                <ul role="list" class="-my-5 divide-y divide-gray-100">
-                                    <li v-for="task in tasks" :key="task.id" class="py-4">
-                                        <div class="flex items-center space-x-4">
-                                            <div class="min-w-0 flex-1">
-                                                <p class="truncate text-sm font-semibold text-gray-900">{{ task.title }}</p>
-                                                <p class="truncate text-xs text-gray-500">
-                                                    Outlet: <span class="font-medium text-gray-700">{{ task.outlet?.name }}</span>
-                                                </p>
-                                                <p class="truncate text-xs text-gray-500 mt-0.5">
-                                                    Worker: <span class="font-medium text-gray-700">{{ task.assigned_user?.name }}</span>
-                                                </p>
-                                            </div>
-                                            <div class="flex flex-col items-end justify-between space-y-1">
-                                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize"
-                                                    :class="{
-                                                        'bg-gray-100 text-gray-800': task.status === 'pending',
-                                                        'bg-blue-100 text-blue-800': task.status === 'accepted',
-                                                        'bg-amber-100 text-amber-800': task.status === 'in_progress',
-                                                        'bg-emerald-100 text-emerald-800': task.status === 'completed',
-                                                        'bg-red-100 text-red-800': task.status === 'cancelled'
-                                                    }"
-                                                >
-                                                    {{ task.status }}
-                                                </span>
-                                                <span class="text-[10px] text-gray-400 font-medium">
-                                                    {{ formatDate(task.scheduled_for) }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </li>
-                                    <li v-if="tasks.length === 0" class="py-6 text-center text-sm text-gray-500">
-                                        No tasks dispatched for today yet.
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-
                     </div>
 
                     <!-- Right column: Leaflet map -->
-                    <div class="lg:col-span-2">
-                        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm h-full flex flex-col min-h-[600px]">
+                    <div class="lg:col-span-2 relative">
+                        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm h-full flex flex-col min-h-[600px] relative">
                             <div class="flex justify-between items-center mb-3">
                                 <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
                                     <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -371,7 +456,31 @@ onUnmounted(() => {
                                     </span>
                                 </div>
                             </div>
-                            <div id="dispatch-map" class="flex-1 rounded-lg shadow-inner overflow-hidden border border-gray-100"></div>
+                            
+                            <div id="dispatch-map" class="flex-1 rounded-lg shadow-inner overflow-hidden border border-gray-100 relative z-0"></div>
+
+                            <!-- Floating Route Summary Overlay Card -->
+                            <div v-if="activeRouteSummary" class="absolute top-16 right-8 z-10 w-72 rounded-xl bg-white/95 backdrop-blur-md p-4 shadow-xl border border-indigo-100 space-y-2">
+                                <div class="flex items-center justify-between border-b border-gray-100 pb-2">
+                                    <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-600">Optimized Route</h4>
+                                    <button @click="clearActiveRoute" class="text-xs font-bold text-gray-400 hover:text-gray-600">✕ Clear</button>
+                                </div>
+                                <p class="text-sm font-bold text-gray-900">{{ activeRouteSummary.workerName }}</p>
+                                <div class="grid grid-cols-3 gap-2 text-center pt-1">
+                                    <div class="rounded-lg bg-indigo-50 p-2">
+                                        <p class="text-[10px] text-indigo-500 font-bold uppercase">Stops</p>
+                                        <p class="text-sm font-extrabold text-indigo-700">{{ activeRouteSummary.totalStops }}</p>
+                                    </div>
+                                    <div class="rounded-lg bg-emerald-50 p-2">
+                                        <p class="text-[10px] text-emerald-500 font-bold uppercase">Dist.</p>
+                                        <p class="text-sm font-extrabold text-emerald-700">{{ activeRouteSummary.totalDistanceKm }} km</p>
+                                    </div>
+                                    <div class="rounded-lg bg-amber-50 p-2">
+                                        <p class="text-[10px] text-amber-500 font-bold uppercase">Time</p>
+                                        <p class="text-sm font-extrabold text-amber-700">{{ activeRouteSummary.estimatedTimeMins }}m</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

@@ -22,10 +22,13 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     {
         return [
             'id',
+            'name',
+            'email',
             'subscription_plan_id',
             'stripe_customer_id',
             'trial_ends_at',
             'subscription_ends_at',
+            'expires_at',
             'status',
         ];
     }
@@ -40,6 +43,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         return [
             'trial_ends_at'        => 'datetime',
             'subscription_ends_at' => 'datetime',
+            'expires_at'           => 'datetime',
         ];
     }
 
