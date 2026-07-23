@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::table('timesheets', function (Blueprint $table) {
             if (!Schema::hasColumn('timesheets', 'geofence_id')) {
-                $table->foreignId('geofence_id')->nullable()->constrained('geofences')->nullOnDelete();
+                $table->uuid('geofence_id')->nullable();
+                $table->foreign('geofence_id')->references('id')->on('geofences')->nullOnDelete();
             }
             if (!Schema::hasColumn('timesheets', 'clock_in')) {
                 $table->timestamp('clock_in')->nullable();
@@ -25,10 +26,12 @@ return new class extends Migration
                 $table->integer('shift_duration_minutes')->nullable();
             }
             if (!Schema::hasColumn('timesheets', 'entry_event_id')) {
-                $table->foreignId('entry_event_id')->nullable()->constrained('geofence_logs')->nullOnDelete();
+                $table->uuid('entry_event_id')->nullable();
+                $table->foreign('entry_event_id')->references('id')->on('geofence_logs')->nullOnDelete();
             }
             if (!Schema::hasColumn('timesheets', 'exit_event_id')) {
-                $table->foreignId('exit_event_id')->nullable()->constrained('geofence_logs')->nullOnDelete();
+                $table->uuid('exit_event_id')->nullable();
+                $table->foreign('exit_event_id')->references('id')->on('geofence_logs')->nullOnDelete();
             }
             if (!Schema::hasColumn('timesheets', 'is_automated')) {
                 $table->boolean('is_automated')->default(true);

@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('status')->default('pending'); // pending, accepted, in_progress, completed, cancelled
             $table->timestamp('scheduled_for');
             $table->timestamp('completed_at')->nullable();
+            $table->text('completion_notes')->nullable();
             $table->string('evidence_photo_path')->nullable();
             $table->timestamps();
 

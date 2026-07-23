@@ -85,12 +85,13 @@ class SyncService
      */
     public function getPullData(string $modelClass, ?string $lastSyncTimestamp)
     {
+        $usesSoftDeletes = in_array(\Illuminate\Database\Eloquent\SoftDeletes::class, class_uses_recursive($modelClass));
+        $query = $usesSoftDeletes ? $modelClass::withTrashed() : $modelClass::query();
+
         if (is_null($lastSyncTimestamp)) {
-            return $modelClass::withTrashed()->get();
+            return $query->get();
         }
 
-        return $modelClass::withTrashed()
-            ->where('last_updated_at', '>', $lastSyncTimestamp)
-            ->get();
+        return $query->where('last_updated_at', '>', $lastSyncTimestamp)->get();
     }
 }

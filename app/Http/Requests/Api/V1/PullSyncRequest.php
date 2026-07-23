@@ -24,7 +24,7 @@ class PullSyncRequest extends FormRequest
         return [
             'last_sync_timestamp' => 'nullable|date_format:Y-m-d H:i:s',
             'collections' => 'required|array',
-            'collections.*' => 'required|string|in:outlets,tracking_logs',
+            'collections.*' => 'required|string|in:outlets,tracking_logs,products',
         ];
     }
 }

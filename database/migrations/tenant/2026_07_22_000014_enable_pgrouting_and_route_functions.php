@@ -10,15 +10,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // 1. Enable pgrouting extension if available in PostgreSQL
-        try {
-            DB::statement('CREATE EXTENSION IF NOT EXISTS pgrouting CASCADE;');
-        } catch (\Exception $e) {
-            // PostGIS spatial routing fallback if pgrouting plugin is not compiled into Postgres image
-            logger()->warning('pgrouting extension creation skipped or deferred: ' . $e->getMessage());
+        // 1. Check if pgrouting extension is available before attempting creation to avoid PostgreSQL transaction abort
+        $available = DB::select("SELECT 1 FROM pg_available_extensions WHERE name = 'pgrouting'");
+        if (!empty($available)) {
+            try {
+                DB::statement('CREATE EXTENSION IF NOT EXISTS pgrouting CASCADE;');
+            } catch (\Exception $e) {
+                logger()->warning('pgrouting extension creation skipped: ' . $e->getMessage());
+            }
         }
 
-        // 2. Create spatial SQL function for nearest-neighbor / TSP task sequence optimization
+        // 2. Create spatial SQL function for nearest-neighbor / TSP task sequence optimization using PostGIS
         DB::statement("
             CREATE OR REPLACE FUNCTION get_optimized_task_sequence(
                 worker_id_param BIGINT,

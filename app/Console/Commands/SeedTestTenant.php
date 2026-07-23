@@ -2,12 +2,15 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Geofence;
 use App\Models\Outlet;
+use App\Models\Product;
 use App\Models\SubscriptionPlan;
 use App\Models\Task;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Hash;
 
 class SeedTestTenant extends Command
 {
@@ -16,143 +19,249 @@ class SeedTestTenant extends Command
      *
      * @var string
      */
-    protected $signature = 'omniroute:seed-test-tenant';
+    protected $signature = 'omniroute:seed-test-tenant {slug=acmedemo}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Seeds a test tenant (acme) with an admin, workers, outlets, and active tasks.';
+    protected $description = 'Seeds an E2E manual testing tenant (acmedemo) with super-admin, dispatcher, worker, products, outlets, tasks, and geofences.';
 
     /**
      * Execute the console command.
      */
     public function handle(): int
     {
-        $this->info("Resolving 'Pro' subscription plan...");
-        $plan = SubscriptionPlan::where('slug', 'pro')->first();
+        $slug = $this->argument('slug');
 
-        if (!$plan) {
-            $this->error("Pro subscription plan not found. Please run the central database seeder first: php artisan db:seed");
-            return 1;
-        }
+        $this->info("Resolving/creating 'Pro' subscription plan...");
+        $plan = SubscriptionPlan::firstOrCreate(
+            ['slug' => 'pro'],
+            [
+                'name'          => 'Pro Plan',
+                'price_monthly' => 149.00,
+                'price_annual'  => 1490.00,
+                'max_users'     => 50,
+                'max_outlets'   => 5000,
+                'features'      => ['crm' => true, 'geofencing' => true, 'route_optimization' => true],
+            ]
+        );
 
-        $this->info("Checking/Creating tenant 'acme'...");
-        $tenant = Tenant::find('acme');
+        // 1. Seed Central Super-Admin User in central DB
+        $superAdmin = User::updateOrCreate(
+            ['email' => 'admin@omniroute.io'],
+            [
+                'name'           => 'OmniRoute Super Admin',
+                'password'       => Hash::make('password'),
+                'is_super_admin' => true,
+            ]
+        );
+        $this->info("Super-Admin 'admin@omniroute.io' seeded in central DB.");
+
+        // 2. Create/Reset Tenant
+        $this->info("Checking/Creating tenant '{$slug}'...");
+        $tenant = Tenant::find($slug);
 
         if (!$tenant) {
             $tenant = Tenant::create([
-                'id'                   => 'acme',
+                'id'                   => $slug,
                 'subscription_plan_id' => $plan->id,
                 'status'               => 'active',
             ]);
-            $tenant->domains()->create(['domain' => 'acme.lvh.me']);
-            $this->info("Tenant 'acme' and domain 'acme.lvh.me' created successfully.");
+            $tenant->domains()->create(['domain' => "{$slug}.localhost"]);
+            $tenant->domains()->create(['domain' => "{$slug}.lvh.me"]);
+            $this->info("Tenant '{$slug}' and domains '{$slug}.localhost' / '{$slug}.lvh.me' created.");
         } else {
-            $this->info("Tenant 'acme' already exists.");
+            $this->info("Tenant '{$slug}' exists.");
         }
 
-        $this->info("Seeding tenant-isolated database...");
-        
-        $tenant->run(function () {
-            // 1. Seed admin user
-            $admin = User::updateOrCreate(
-                ['email' => 'admin@acme.com'],
+        // 3. Seed Tenant Context
+        $this->info("Seeding tenant-isolated database context for '{$slug}'...");
+
+        $tenant->run(function () use ($slug) {
+            // Seed Dispatcher User
+            $dispatcher = User::updateOrCreate(
+                ['email' => "dispatcher@{$slug}.com"],
                 [
-                    'name'     => 'Acme Admin',
-                    'password' => bcrypt('password'),
+                    'name'     => 'Acme Dispatcher',
+                    'password' => Hash::make('password'),
                 ]
             );
-            $this->info("Admin user 'admin@acme.com' set up.");
+            $this->info("Dispatcher user 'dispatcher@{$slug}.com' set up.");
 
-            // 2. Seed field workers
-            $worker1 = User::updateOrCreate(
-                ['email' => 'worker1@acme.com'],
+            // Seed Field Worker User
+            $worker = User::updateOrCreate(
+                ['email' => "worker@{$slug}.com"],
                 [
-                    'name'     => 'Field Worker One',
-                    'password' => bcrypt('password'),
+                    'name'     => 'Acme Field Worker',
+                    'password' => Hash::make('password'),
                 ]
             );
+            $this->info("Field worker user 'worker@{$slug}.com' set up.");
 
-            $worker2 = User::updateOrCreate(
-                ['email' => 'worker2@acme.com'],
+            // Seed 5 Products
+            $productsData = [
                 [
-                    'name'     => 'Field Worker Two',
-                    'password' => bcrypt('password'),
-                ]
-            );
-            $this->info("Field workers 'worker1@acme.com' and 'worker2@acme.com' set up.");
+                    'sku'            => 'COFFEE-PREM-500G',
+                    'name'           => 'Premium Coffee Beans 500g',
+                    'description'    => 'Dark roast arabica beans',
+                    'unit_price'     => 18.50,
+                    'stock_quantity' => 150,
+                ],
+                [
+                    'sku'            => 'TEA-BLACK-100BAG',
+                    'name'           => 'Black Tea Leaves Box (100 Bags)',
+                    'description'    => 'Fine Kenya CTC black tea',
+                    'unit_price'     => 8.20,
+                    'stock_quantity' => 200,
+                ],
+                [
+                    'sku'            => 'SYRUP-CARAMEL-1L',
+                    'name'           => 'Caramel Flavored Syrup 1L',
+                    'description'    => 'Gourmet beverage syrup',
+                    'unit_price'     => 12.00,
+                    'stock_quantity' => 80,
+                ],
+                [
+                    'sku'            => 'SYRUP-VANILLA-1L',
+                    'name'           => 'Vanilla Flavored Syrup 1L',
+                    'description'    => 'Classic vanilla flavoring',
+                    'unit_price'     => 12.00,
+                    'stock_quantity' => 95,
+                ],
+                [
+                    'sku'            => 'PODS-ESPRESSO-50',
+                    'name'           => 'Espresso Pods Pack (50 Pods)',
+                    'description'    => 'Compatible espresso capsules',
+                    'unit_price'     => 22.00,
+                    'stock_quantity' => 110,
+                ],
+            ];
 
-            // 3. Seed Outlets in Nairobi
+            foreach ($productsData as $pData) {
+                Product::updateOrCreate(
+                    ['sku' => $pData['sku']],
+                    [
+                        'name'           => $pData['name'],
+                        'description'    => $pData['description'],
+                        'unit_price'     => $pData['unit_price'],
+                        'stock_quantity' => $pData['stock_quantity'],
+                        'is_active'      => true,
+                    ]
+                );
+            }
+            $this->info("5 Products seeded into catalogue.");
+
+            // Seed 3 Outlets around Nairobi
             $outletsData = [
                 [
-                    'name'     => 'Nairobi CBD Branch',
-                    'phone'    => '254700000001',
+                    'id'       => 101,
+                    'name'     => 'Nairobi CBD Main Outlet',
+                    'phone'    => '254700000101',
                     'address'  => 'Kenyatta Avenue, Nairobi',
-                    'status'   => 'active',
                     'location' => ['latitude' => -1.2833, 'longitude' => 36.8233],
                 ],
                 [
-                    'name'     => 'Westlands Branch',
-                    'phone'    => '254700000002',
-                    'address'  => 'Mpaka Road, Westlands',
-                    'status'   => 'active',
+                    'id'       => 102,
+                    'name'     => 'Westlands Hub Outlet',
+                    'phone'    => '254700000102',
+                    'address'  => 'Mpaka Road, Westlands, Nairobi',
                     'location' => ['latitude' => -1.2633, 'longitude' => 36.8033],
                 ],
                 [
-                    'name'     => 'Kilimani Branch',
-                    'phone'    => '254700000003',
-                    'address'  => 'Yaya Center, Kilimani',
-                    'status'   => 'active',
+                    'id'       => 103,
+                    'name'     => 'Kilimani Junction Outlet',
+                    'phone'    => '254700000103',
+                    'address'  => 'Yaya Center, Kilimani, Nairobi',
                     'location' => ['latitude' => -1.2933, 'longitude' => 36.7893],
-                ]
+                ],
             ];
 
             $outlets = [];
-            foreach ($outletsData as $data) {
+            foreach ($outletsData as $oData) {
                 $outlets[] = Outlet::updateOrCreate(
-                    ['name' => $data['name']],
+                    ['id' => $oData['id']],
                     [
-                        'phone'           => $data['phone'],
-                        'address'         => $data['address'],
-                        'status'          => $data['status'],
-                        'location'        => $data['location'],
+                        'name'            => $oData['name'],
+                        'phone'           => $oData['phone'],
+                        'address'         => $oData['address'],
+                        'status'          => 'active',
+                        'location'        => $oData['location'],
                         'version'         => 1,
                         'last_updated_at' => now(),
                     ]
                 );
             }
-            $this->info("3 Nairobi outlets set up.");
+            $this->info("3 Outlets seeded in Nairobi area.");
 
-            // 4. Seed today's Tasks
-            Task::updateOrCreate(
+            // Seed 3 Pending Tasks assigned to worker
+            $tasksData = [
                 [
-                    'title'         => 'Stock Audit CBD',
+                    'title'         => 'Morning Inventory Check - CBD',
+                    'description'   => 'Audit coffee bean stock levels and verify syrup bottles',
+                    'outlet_id'     => $outlets[0]->id,
                     'scheduled_for' => now()->startOfDay()->addHours(9)->toDateTimeString(),
                 ],
                 [
-                    'outlet_id'        => $outlets[0]->id,
-                    'assigned_user_id' => $worker1->id,
-                    'status'           => 'pending',
-                ]
-            );
-
-            Task::updateOrCreate(
-                [
-                    'title'         => 'Merchandising Westlands',
-                    'scheduled_for' => now()->startOfDay()->addHours(14)->toDateTimeString(),
+                    'title'         => 'Merchandising & Display Setup - Westlands',
+                    'description'   => 'Set up new espresso pod promo display at entrance',
+                    'outlet_id'     => $outlets[1]->id,
+                    'scheduled_for' => now()->startOfDay()->addHours(11)->toDateTimeString(),
                 ],
                 [
-                    'outlet_id'        => $outlets[1]->id,
-                    'assigned_user_id' => $worker2->id,
-                    'status'           => 'pending',
+                    'title'         => 'Afternoon Delivery & Re-Stock - Kilimani',
+                    'description'   => 'Deliver 20 boxes of tea leaves and inspect storage area',
+                    'outlet_id'     => $outlets[2]->id,
+                    'scheduled_for' => now()->startOfDay()->addHours(14)->toDateTimeString(),
+                ],
+            ];
+
+            foreach ($tasksData as $tData) {
+                Task::updateOrCreate(
+                    ['title' => $tData['title']],
+                    [
+                        'description'      => $tData['description'],
+                        'outlet_id'        => $tData['outlet_id'],
+                        'assigned_user_id' => $worker->id,
+                        'status'           => 'pending',
+                        'scheduled_for'    => $tData['scheduled_for'],
+                    ]
+                );
+            }
+            $this->info("3 Pending Tasks assigned to worker.");
+
+            // Seed 1 Site Geofence Polygon around Nairobi CBD Outlet
+            Geofence::updateOrCreate(
+                ['name' => 'CBD Main Outlet Geofence Perimeter'],
+                [
+                    'description' => 'Geofence boundary surrounding Kenyatta Avenue CBD outlet',
+                    'area'        => [
+                        ['lat' => -1.2800, 'lng' => 36.8200],
+                        ['lat' => -1.2800, 'lng' => 36.8300],
+                        ['lat' => -1.2900, 'lng' => 36.8300],
+                        ['lat' => -1.2900, 'lng' => 36.8200],
+                        ['lat' => -1.2800, 'lng' => 36.8200],
+                    ],
+                    'is_active'       => true,
+                    'version'         => 1,
+                    'last_updated_at' => now(),
                 ]
             );
-            $this->info("2 active tasks scheduled for today.");
+            $this->info("1 Site Geofence polygon seeded around CBD outlet.");
         });
 
-        $this->info("Tenant seeding process complete.");
+        $this->info("--------------------------------------------------");
+        $this->info("E2E Manual Testing Environment '{$slug}' Ready!");
+        $this->info("Access URLs:");
+        $this->info("  - Tenant Web Portal: http://{$slug}.localhost:8888");
+        $this->info("  - Central Super-Admin: http://localhost:8888/central/dashboard");
+        $this->info("Credentials:");
+        $this->info("  - Super Admin: admin@omniroute.io / password");
+        $this->info("  - Dispatcher:  dispatcher@{$slug}.com / password");
+        $this->info("  - Field Worker: worker@{$slug}.com / password");
+        $this->info("--------------------------------------------------");
+
         return 0;
     }
 }

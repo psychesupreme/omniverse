@@ -30,6 +30,7 @@ class Task extends Model
         'status',
         'scheduled_for',
         'completed_at',
+        'completion_notes',
         'evidence_photo_path',
     ];
 

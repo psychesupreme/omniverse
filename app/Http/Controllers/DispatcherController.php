@@ -19,17 +19,29 @@ class DispatcherController extends Controller
     {
         $outlets = Outlet::all(['id', 'name', 'location', 'status']);
 
-        // Fetch workers (users) along with their last known coordinates from tracking logs
-        $workers = User::all(['id', 'name', 'email'])->map(function ($user) {
-            $latestLog = TrackingLog::where('user_id', $user->id)
-                ->latest('recorded_at_mobile')
-                ->first();
+        // Fetch the latest tracking log per user in a single query (avoids N+1)
+        $latestLogSubquery = TrackingLog::selectRaw('DISTINCT ON (user_id) user_id, latitude, longitude')
+            ->orderBy('user_id')
+            ->orderByDesc('recorded_at_mobile');
 
+        $latestLogs = [];
+        try {
+            foreach ($latestLogSubquery->get() as $log) {
+                $latestLogs[$log->user_id] = [
+                    'latitude'  => $log->latitude,
+                    'longitude' => $log->longitude,
+                ];
+            }
+        } catch (\Exception $e) {
+            // If tracking_logs table is empty or query fails, proceed with empty locations
+        }
+
+        $workers = User::all(['id', 'name', 'email'])->map(function ($user) use ($latestLogs) {
             return [
                 'id'       => $user->id,
                 'name'     => $user->name,
                 'email'    => $user->email,
-                'location' => $latestLog ? $latestLog->location : null,
+                'location' => $latestLogs[$user->id] ?? null,
             ];
         });
 
